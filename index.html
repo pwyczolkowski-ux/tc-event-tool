@@ -7,8 +7,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 <style>
 :root{--navy:#121635;--red:#DC143C;--yellow:#FFD503;--white:#fff;--g1:#F5F5F5;--g2:#E8E8E8;--g3:#AAAAAA;--g4:#555;--font:'Roboto',Arial,sans-serif}
@@ -241,7 +241,7 @@ body.pb #pax{display:none!important}
     <div id="tab-x1" style="display:none">
       <div class="np" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <span style="font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:.1em;color:#555">Zestawienia 1×1</span>
-        <button class="btn btn-o btn-sm" onclick="genAllX1ZIP()">Pobierz ZIP (DOCX)</button>
+        <button class="btn btn-o btn-sm" onclick="genAllX1ZIP()">Pobierz ZIP (DOCX + PDF)</button>
       </div>
       <div class="xl">
         <div class="xs">
@@ -1020,15 +1020,55 @@ function buildX1PrintHTML(name){
     +'</body></html>';
 }
 
-function genX1PDF(name){
-  var person=x1map[name];if(!person){alert('Brak danych.');return;}
-  var content=buildX1PrintHTML(name);
-  var w=window.open('','_blank','width=1100,height=750');
-  if(!w){alert('Zezwól na okna pop-up dla tej strony.');return;}
-  w.document.open();w.document.write(content);w.document.close();
-  w.focus();
-  setTimeout(function(){w.print();},800);
+function buildX1PDFDef(name){
+  var person=x1map[name];if(!person)return null;
+  var inf=byName[name.toLowerCase()];
+  var mtgs=person.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');});
+  var evDate=evMeta?evMeta.split('\u00b7')[0].trim():'';
+  var dateLabel=(evDate?evDate+' \u2014 ':'')+evName;
+  var nameStr=name+(inf&&inf.firma?' ('+inf.firma+')':'');
+  var YELLOW='#FFD503',DARK='#404040';
+  var bodyRows=[];
+  mtgs.forEach(function(m,i){
+    var pi=byName[m.partner.toLowerCase()];
+    var bg=(i%2===0)?'#FFFFFF':'#F8F8F8';
+    var row=[
+      {text:String(i+1),alignment:'center',fontSize:9,fillColor:bg},
+      {text:m.partner||'',alignment:'center',fontSize:9,fillColor:bg},
+      {text:pi?pi.firma||'':'',alignment:'center',fontSize:9,fillColor:bg},
+      {text:pi?pi.branza||'':'',alignment:'center',fontSize:9,fillColor:bg}
+    ];
+    if(i===0)row.push({text:dateLabel,rowSpan:mtgs.length,alignment:'center',verticalAlignment:'center',fontSize:9,fillColor:'#FFFFFF'});
+    else row.push({});
+    bodyRows.push(row);
+  });
+  return{
+    pageOrientation:'landscape',pageSize:'A4',pageMargins:[40,20,40,50],
+    content:[
+      {image:CC_LOGO,width:140,margin:[0,0,0,4]},
+      {canvas:[{type:'line',x1:0,y1:0,x2:752,y2:0,lineWidth:2.5,lineColor:YELLOW}],margin:[0,0,0,18]},
+      {text:nameStr,fontSize:16,bold:true,alignment:'center',margin:[0,0,0,6],color:DARK},
+      {text:'Spotkania 1 na 1',fontSize:13,bold:true,alignment:'center',margin:[0,0,0,16],color:DARK},
+      {table:{
+        headerRows:2,widths:[28,140,160,260,120],
+        body:[
+          [{text:'Spotkania 1 na 1',colSpan:5,alignment:'center',bold:true,fontSize:11,fillColor:YELLOW,color:DARK,margin:[0,4,0,4]},{},{},{},{}],
+          [{text:'Lp.',bold:true,alignment:'center',fillColor:YELLOW,color:DARK,fontSize:9},{text:'Osoba',bold:true,alignment:'center',fillColor:YELLOW,color:DARK,fontSize:9},{text:'Firma',bold:true,alignment:'center',fillColor:YELLOW,color:DARK,fontSize:9},{text:'Bran\u017ca',bold:true,alignment:'center',fillColor:YELLOW,color:DARK,fontSize:9},{text:'Data',bold:true,alignment:'center',fillColor:YELLOW,color:DARK,fontSize:9}]
+        ].concat(bodyRows)
+      },layout:{hLineWidth:function(){return 0.5;},vLineWidth:function(){return 0.5;},hLineColor:function(){return'#CCCCCC';},vLineColor:function(){return'#CCCCCC';},paddingLeft:function(){return 4;},paddingRight:function(){return 4;},paddingTop:function(){return 3;},paddingBottom:function(){return 3;}}}
+    ],
+    footer:function(){return{image:WLC_LOGO,width:140,margin:[40,8,0,0]};},
+    defaultStyle:{font:'Roboto'}
+  };
 }
+
+function genX1PDF(name){
+  if(!x1map[name]){alert('Brak danych.');return;}
+  if(typeof pdfMake==='undefined'){alert('pdfMake nie załadowane — odśwież stronę.');return;}
+  var def=buildX1PDFDef(name);
+  if(def) pdfMake.createPdf(def).download(x1FileName(name)+'.pdf');
+}
+
 
 async function genAllX1ZIP(){
   if(!x1list.length){alert('Brak danych spotkań.');return;}
@@ -1069,7 +1109,7 @@ async function genAllX1ZIP(){
 
   var blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
   dl(blob,'1x1_'+evName.replace(/[^a-zA-Z0-9_ -]/g,'_')+'.zip');
-  if(btn){btn.disabled=false;btn.textContent='Pobierz ZIP (DOCX)';}
+  if(btn){btn.disabled=false;btn.textContent='Pobierz ZIP (DOCX + PDF)';}
 }
 
 function dl(blob,name){var url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);}
