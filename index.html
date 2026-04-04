@@ -1109,6 +1109,28 @@ function renderX1det(name){
     '</div>';
 }
 
+// ══ 1x1 HELPERS ══
+function x1FileName(name){
+  return (name+' 1x1 '+evName).replace(/[\/\\:*?"<>|]/g,'_');
+}
+function x1page(name){
+  var p=x1map[name],inf=byName[name.toLowerCase()];if(!p)return'';
+  var tot=p.mtgs.reduce(function(s,m){return s+(parseInt(m.dur)||0);},0);
+  var rows=p.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');}).map(function(m,i){
+    var pi=byName[m.partner.toLowerCase()];
+    return'<div class="xpm"><div class="xpmt">'+esc(m.start||'—')+'</div>'+
+      '<div><div class="xpmn">'+(i+1)+'. '+esc(m.partner)+'</div>'+
+      '<div class="xpmi">'+esc(pi?[pi.firma,pi.branza].filter(Boolean).join(' \u00b7 '):'')+'</div></div>'+
+      '<div class="xpmd">'+esc(m.dur?m.dur+' min':'')+'</div></div>';
+  }).join('');
+  return'<div class="xpp"><div class="xph">'+
+    '<div class="xpn">'+esc(name)+(inf&&inf.firma?' \u00b7 '+esc(inf.firma):'')+'</div>'+
+    '<div class="xpe">'+esc(evName)+' \u00b7 '+esc(evMeta)+'</div></div>'+
+    rows+(tot?'<div class="xpf">\u0141\u0105cznie: '+tot+' minut</div>':'')+'</div>';
+}
+function printOneX1(name){document.getElementById('pax').innerHTML=x1page(name);window.print();}
+function printAllX1(){document.getElementById('pax').innerHTML=x1list.map(function(p){return x1page(p.name);}).join('');window.print();}
+
 </script>
 </body>
 </html>
