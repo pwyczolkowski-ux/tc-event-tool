@@ -7,6 +7,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 <style>
 :root{--navy:#121635;--red:#DC143C;--yellow:#FFD503;--white:#fff;--g1:#F5F5F5;--g2:#E8E8E8;--g3:#AAAAAA;--g4:#555;--font:'Roboto',Arial,sans-serif}
@@ -240,6 +242,7 @@ body.pb #pax{display:none!important}
       <div class="np" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <span style="font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:.1em;color:#555">Zestawienia 1×1</span>
         <button class="btn btn-n btn-sm" onclick="printAllX1()">Drukuj wszystkie</button>
+        <button class="btn btn-o btn-sm" onclick="genAllX1ZIP()">Pobierz ZIP</button>
       </div>
       <div class="xl">
         <div class="xs">
@@ -623,7 +626,10 @@ function renderX1det(name){
   var p=x1map[name],inf=byName[name.toLowerCase()],el=document.getElementById('xd');if(!p)return;
   var tot=p.mtgs.reduce(function(s,m){return s+(parseInt(m.dur)||0);},0);
   var rows=p.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');}).map(function(m,i){var pi=byName[m.partner.toLowerCase()];var ts=m.start?(m.start+(m.end?'–'+m.end:'')):'—';return'<div class="xmr"><div class="xmt">'+esc(ts)+'</div><div><div class="xmn">'+(i+1)+'. '+esc(m.partner)+'</div><div class="xmd">'+esc(pi?[pi.firma,pi.branza].filter(Boolean).join(' · '):'')+'</div></div><div class="xdu">'+esc(m.dur?m.dur+' min':'—')+'</div></div>';}).join('');
-  el.innerHTML='<div class="xdh"><div class="xdhn">'+esc(name)+'</div><div class="xdhf">'+esc(inf?inf.firma||'':'')+'</div><div class="xdhs"><span>'+p.mtgs.length+'</span> spotkań'+(tot?' &nbsp;·&nbsp; <span>'+tot+'</span> min':'')+'</div></div><div class="xm">'+rows+'</div><div class="xft np"><button class="btn btn-o btn-sm" onclick="printOneX1(\''+escA(name)+'\')">Drukuj</button></div>';
+  el.innerHTML='<div class="xdh"><div class="xdhn">'+esc(name)+'</div><div class="xdhf">'+esc(inf?inf.firma||'':'')+'</div><div class="xdhs"><span>'+p.mtgs.length+'</span> spotkań'+(tot?' &nbsp;·&nbsp; <span>'+tot+'</span> min':'')+'</div></div><div class="xm">'+rows+'</div><div class="xft np"><button class="btn btn-o btn-sm" onclick="printOneX1(\''+escA(name)+'\')">Drukuj</button>'+
+    '<button class="btn btn-n btn-sm" onclick="genX1DOCX(\\\''+escA(name)+'\\\')">DOCX</button>'+
+    '<button class="btn btn-n btn-sm" onclick="genX1PDF(\\\''+escA(name)+'\\\')">PDF</button>'+
+  '</div>';
 }
 function x1page(name){var p=x1map[name],inf=byName[name.toLowerCase()];if(!p)return'';var tot=p.mtgs.reduce(function(s,m){return s+(parseInt(m.dur)||0);},0);var rows=p.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');}).map(function(m,i){var pi=byName[m.partner.toLowerCase()];return'<div class="xpm"><div class="xpmt">'+esc(m.start||'—')+'</div><div><div class="xpmn">'+(i+1)+'. '+esc(m.partner)+'</div><div class="xpmi">'+esc(pi?[pi.firma,pi.branza].filter(Boolean).join(' · '):'')+'</div></div><div class="xpmd">'+esc(m.dur?m.dur+' min':'')+'</div></div>';}).join('');return'<div class="xpp"><div class="xph"><div class="xpn">'+esc(name)+(inf&&inf.firma?' · '+esc(inf.firma):'')+'</div><div class="xpe">'+esc(evName)+' · '+esc(evMeta)+'</div></div>'+rows+(tot?'<div class="xpf">Łącznie: '+tot+' minut</div>':'')+'</div>';}
 function printOneX1(name){document.getElementById('pax').innerHTML=x1page(name);window.print();}
@@ -819,6 +825,266 @@ function setBF(f,btn){bfilt=f;document.querySelectorAll('#tab-badge .pill').forE
 function noun(n,s1,s2,s5){if(n===1)return s1;if(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))return s2;return s5;}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function escA(s){return String(s||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;');}
+// ══ 1x1 FILE NAME ══
+function x1FileName(name){
+  return name+' 1x1 '+evName;
+}
+
+// ══ 1x1 OOXML TABLE ══
+function buildX1Table(name){
+  var person=x1map[name];
+  if(!person)return'';
+  var inf=byName[name.toLowerCase()];
+  var mtgs=person.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');});
+
+  // Landscape A4 usable width: 16838 - 2*1134 = 14570 twips
+  var cws=[600,2800,3500,5000,2670]; // Lp|Osoba|Firma|Branża|Data
+  var tw=cws.reduce(function(a,b){return a+b;},0);
+
+  function wa(n,v){return ' w:'+n+'="'+v+'"';}
+  function cell(txt,w,fill,bold,span,sz,vmerge){
+    sz=sz||18;fill=fill||'FFFFFF';
+    var tcp='<w:tcPr>'+
+      '<w:tcW'+wa('w',w)+wa('type','dxa')+'/>'+
+      (span?'<w:gridSpan'+wa('val',span)+'/>':'')+
+      (vmerge==='start'?'<w:vMerge w:val="restart"/>':(vmerge==='cont'?'<w:vMerge/>':''))+
+      '<w:shd'+wa('val','clear')+wa('color','auto')+wa('fill',fill)+'/>'+
+      '<w:tcMar><w:top'+wa('w','60')+wa('type','dxa')+'/><w:left'+wa('w','108')+wa('type','dxa')+'/><w:bottom'+wa('w','60')+wa('type','dxa')+'/><w:right'+wa('w','108')+wa('type','dxa')+'/></w:tcMar>'+
+    '</w:tcPr>';
+    var pp='<w:pPr><w:jc'+wa('val','center')+'/>'+
+      '<w:spacing'+wa('before','0')+wa('after','0')+wa('line','240')+wa('lineRule','auto')+'/></w:pPr>';
+    var rp='<w:rPr>'+(bold?'<w:b/>':'')+
+      '<w:rFonts'+wa('ascii','Calibri')+wa('hAnsi','Calibri')+'/>'+
+      '<w:sz'+wa('val',sz)+'/><w:szCs'+wa('val',sz)+'/></w:rPr>';
+    return'<w:tc>'+tcp+'<w:p>'+pp+'<w:r>'+rp+
+      '<w:t xml:space="preserve">'+xesc(txt)+'</w:t></w:r></w:p></w:tc>';
+  }
+  function emptyCell(w,fill,vmerge){
+    return'<w:tc><w:tcPr><w:tcW'+wa('w',w)+wa('type','dxa')+'/>'+(vmerge==='cont'?'<w:vMerge/>':'')+
+      '<w:shd'+wa('val','clear')+wa('color','auto')+wa('fill',fill||'FFFFFF')+'/></w:tcPr>'+
+      '<w:p><w:pPr><w:jc w:val="center"/></w:pPr></w:p></w:tc>';
+  }
+
+  var bd='<w:top'+wa('val','single')+wa('sz','6')+wa('space','0')+wa('color','404040')+'/>'+
+         '<w:left'+wa('val','single')+wa('sz','6')+wa('space','0')+wa('color','404040')+'/>'+
+         '<w:bottom'+wa('val','single')+wa('sz','6')+wa('space','0')+wa('color','404040')+'/>'+
+         '<w:right'+wa('val','single')+wa('sz','6')+wa('space','0')+wa('color','404040')+'/>'+
+         '<w:insideH'+wa('val','single')+wa('sz','4')+wa('space','0')+wa('color','CCCCCC')+'/>'+
+         '<w:insideV'+wa('val','single')+wa('sz','4')+wa('space','0')+wa('color','CCCCCC')+'/>';
+
+  var tpr='<w:tblPr><w:tblW'+wa('w',tw)+wa('type','dxa')+'/><w:tblBorders>'+bd+'</w:tblBorders><w:tblLayout'+wa('type','fixed')+'/></w:tblPr>';
+  var tgrd='<w:tblGrid>'+cws.map(function(w){return'<w:gridCol'+wa('w',w)+'/>';}).join('')+'</w:tblGrid>';
+
+  var rows='';
+  // Header row 1: merged "Spotkania 1 na 1"
+  rows+='<w:tr>'+cell('Spotkania 1 na 1',tw,'FFD503',true,5,20)+'</w:tr>';
+  // Header row 2: column headers
+  var hdrs=['Lp.','Osoba','Firma','Branża','Data'];
+  rows+='<w:tr>'+hdrs.map(function(h,i){return cell(h,cws[i],'FFD503',true,0,18);}).join('')+'</w:tr>';
+
+  // Data date label
+  var dateLabel=evMeta?evMeta.split('\u00b7')[0].trim()+' '+evName:evName;
+
+  // Data rows with vertical merge on Date column
+  mtgs.forEach(function(m,i){
+    var pi=byName[m.partner.toLowerCase()];
+    var firm=pi?pi.firma:'';
+    var bran=pi?pi.branza:'';
+    var rowBg=(i%2===0)?'FFFFFF':'F8F8F8';
+    var dateCell=i===0
+      ? cell(dateLabel,cws[4],rowBg,false,0,17,'start')
+      : emptyCell(cws[4],rowBg,'cont');
+    rows+='<w:tr>'+
+      cell(String(i+1),cws[0],rowBg,false,0,17)+
+      cell(m.partner,cws[1],rowBg,false,0,17)+
+      cell(firm.substring(0,40),cws[2],rowBg,false,0,17)+
+      cell(bran.substring(0,60),cws[3],rowBg,false,0,17)+
+      dateCell+
+    '</w:tr>';
+  });
+
+  return'<w:tbl>'+tpr+tgrd+rows+'</w:tbl>';
+}
+
+// ══ 1x1 DOCX ══
+async function genX1DOCX(name){
+  if(!lhBuf){try{var r=await fetch('./CC%20Papier%20firmowy%202025%20(3).docx');if(!r.ok)throw new Error();lhBuf=await r.arrayBuffer();}catch(e){alert('Brak szablonu DOCX.');return;}}
+  try{
+    var zip=await JSZip.loadAsync(lhBuf);
+    var doc=await zip.file('word/document.xml').async('string');
+
+    // Switch to landscape
+    doc=doc.replace(/w:pgSz[^/]*\//,
+      'w:pgSz w:h="11906" w:w="16838" w:orient="landscape"/');
+
+    function wa(n,v){return' w:'+n+'="'+v+'"';}
+
+    // Build name heading paragraph
+    function para(txt,sz,bold,spacing){
+      return'<w:p><w:pPr><w:jc w:val="center"/><w:spacing'+wa('before',spacing||'120')+wa('after','80')+'/></w:pPr>'+
+        '<w:r><w:rPr>'+(bold?'<w:b/>':'')+
+          '<w:rFonts'+wa('ascii','Calibri')+wa('hAnsi','Calibri')+'/>'+
+          '<w:sz'+wa('val',sz)+'/><w:szCs'+wa('val',sz)+'/></w:rPr>'+
+        '<w:t xml:space="preserve">'+xesc(txt)+'</w:t></w:r></w:p>';
+    }
+
+    var inf=byName[name.toLowerCase()];
+    var nameStr=name+(inf&&inf.firma?' ('+inf.firma+')':'');
+    var content=para(nameStr,28,true,'200')+para('Spotkania 1 na 1',24,true,'60')+buildX1Table(name)+'<w:p/>';
+
+    doc=doc.replace('<w:sectPr>',content+'<w:sectPr>');
+    zip.file('word/document.xml',doc);
+    var out=await zip.generateAsync({type:'arraybuffer',compression:'DEFLATE'});
+    dl(new Blob([out],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}),x1FileName(name)+'.docx');
+  }catch(e){console.error(e);alert('Błąd DOCX: '+e.message);}
+}
+
+// ══ 1x1 PDF ══
+function genX1PDF(name){
+  var person=x1map[name];if(!person){alert('Brak danych.');return;}
+  var jsPDF=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF;
+  if(!jsPDF){alert('Biblioteka jsPDF nie załadowana.');return;}
+  try{
+    var doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+    if(!doc.autoTable){alert('Brak wtyczki autoTable.');return;}
+
+    var Y=[255,213,3],DA=[64,64,64],WH=[255,255,255],LG=[248,248,248];
+    var margin=15,pw=297,ph=210;
+    var inf=byName[name.toLowerCase()];
+    var mtgs=person.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');});
+    var dateLabel=evMeta?evMeta.split('\u00b7')[0].trim()+' '+evName:evName;
+
+    // Build rows with merged date cell
+    var body=[];
+    mtgs.forEach(function(m,i){
+      var pi=byName[m.partner.toLowerCase()];
+      var row=[i+1,m.partner,pi?pi.firma:'',pi?pi.branza:''];
+      if(i===0){row.push({content:dateLabel,rowSpan:mtgs.length,styles:{valign:'middle',halign:'center',fontStyle:'normal'}});}
+      body.push(row);
+    });
+
+    var logoB64=CC_LOGO,wlcB64=WLC_LOGO;
+
+    doc.autoTable({
+      head:[['Lp.','Osoba','Firma','Branża','Data']],
+      body:body,
+      startY:52,
+      margin:{left:margin,right:margin},
+      tableWidth:pw-2*margin,
+      columnStyles:{0:{cellWidth:12},1:{cellWidth:52},2:{cellWidth:60},3:{cellWidth:90},4:{cellWidth:53}},
+      styles:{font:'helvetica',fontSize:9,textColor:DA,cellPadding:2.5,valign:'middle',halign:'center',
+              lineColor:[200,200,200],lineWidth:0.2},
+      headStyles:{fillColor:Y,textColor:DA,fontStyle:'bold',fontSize:9},
+      alternateRowStyles:{fillColor:LG},
+      didDrawPage:function(){
+        try{doc.addImage(logoB64,'PNG',margin,6,48,12);}catch(e){}
+        doc.setDrawColor(255,213,3);doc.setLineWidth(0.8);
+        doc.line(margin,21,pw-margin,21);
+        // Name
+        doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(40,40,40);
+        doc.text(name+(inf&&inf.firma?' ('+inf.firma+')':''),pw/2,33,{align:'center'});
+        doc.setFontSize(12);
+        doc.text('Spotkania 1 na 1',pw/2,42,{align:'center'});
+        doc.setFont('helvetica','normal');
+        // WLC footer
+        try{doc.addImage(wlcB64,'PNG',margin,ph-14,55,6);}catch(e){}
+      }
+    });
+
+    doc.save(x1FileName(name)+'.pdf');
+  }catch(e){console.error(e);alert('Błąd PDF: '+e.message);}
+}
+
+// ══ ZIP ALL 1x1 ══
+async function genAllX1ZIP(){
+  if(!x1list.length){alert('Brak danych spotkań.');return;}
+  var jsPDF=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF;
+  var hasPDF=!!(jsPDF);
+  var zip=new JSZip();
+  var total=x1list.length,done=0;
+  var btn=document.querySelector('[onclick="genAllX1ZIP()"]');
+  if(btn){btn.disabled=true;btn.textContent='Generuję...';}
+
+  for(var i=0;i<x1list.length;i++){
+    var name=x1list[i].name;
+    var fname=x1FileName(name);
+
+    // DOCX
+    try{
+      if(!lhBuf){var r=await fetch('./CC%20Papier%20firmowy%202025%20(3).docx');if(r.ok)lhBuf=await r.arrayBuffer();}
+      if(lhBuf){
+        var zp=await JSZip.loadAsync(lhBuf);
+        var d=await zp.file('word/document.xml').async('string');
+        d=d.replace(/w:pgSz[^/]*\//,'w:pgSz w:h="11906" w:w="16838" w:orient="landscape"/');
+        var inf=byName[name.toLowerCase()];
+        var nameStr=name+(inf&&inf.firma?' ('+inf.firma+')':'');
+        function wa2(n,v){return' w:'+n+'="'+v+'"';}
+        function para2(txt,sz,bold){return'<w:p><w:pPr><w:jc w:val="center"/><w:spacing'+wa2('before','120')+wa2('after','80')+'/></w:pPr><w:r><w:rPr>'+(bold?'<w:b/>':'')+'<w:rFonts'+wa2('ascii','Calibri')+wa2('hAnsi','Calibri')+'/>'+('<w:sz'+wa2('val',sz)+'/><w:szCs'+wa2('val',sz)+'/>').replace(/\+"/g,'"')+'</w:rPr><w:t xml:space="preserve">'+xesc(txt)+'</w:t></w:r></w:p>';}
+        var content=para2(nameStr,28,true)+para2('Spotkania 1 na 1',24,true)+buildX1Table(name)+'<w:p/>';
+        d=d.replace('<w:sectPr>',content+'<w:sectPr>');
+        zp.file('word/document.xml',d);
+        var outBuf=await zp.generateAsync({type:'arraybuffer',compression:'DEFLATE'});
+        zip.file(fname+'.docx',outBuf);
+      }
+    }catch(e){console.warn('DOCX error for '+name,e);}
+
+    // PDF
+    if(hasPDF){
+      try{
+        var pdfBuf=genX1PDFBuffer(name,jsPDF);
+        if(pdfBuf)zip.file(fname+'.pdf',pdfBuf);
+      }catch(e){console.warn('PDF error for '+name,e);}
+    }
+
+    done++;
+    if(btn)btn.textContent='Generuję '+done+'/'+total+'...';
+  }
+
+  var blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
+  dl(blob,'1x1_'+evName.replace(/[^a-zA-Z0-9_ -]/g,'_')+'.zip');
+  if(btn){btn.disabled=false;btn.textContent='Pobierz ZIP';}
+}
+
+// Generate PDF as ArrayBuffer (for ZIP)
+function genX1PDFBuffer(name,jsPDF){
+  var person=x1map[name];if(!person)return null;
+  jsPDF=jsPDF||(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF;
+  if(!jsPDF)return null;
+  var doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  if(!doc.autoTable)return null;
+  var Y=[255,213,3],DA=[64,64,64],WH=[255,255,255],LG=[248,248,248];
+  var margin=15,pw=297,ph=210;
+  var inf=byName[name.toLowerCase()];
+  var mtgs=person.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');});
+  var dateLabel=evMeta?evMeta.split('\u00b7')[0].trim()+' '+evName:evName;
+  var body=[];
+  mtgs.forEach(function(m,i){
+    var pi=byName[m.partner.toLowerCase()];
+    var row=[i+1,m.partner,pi?pi.firma:'',pi?pi.branza:''];
+    if(i===0)row.push({content:dateLabel,rowSpan:mtgs.length,styles:{valign:'middle',halign:'center'}});
+    body.push(row);
+  });
+  var logoB64=CC_LOGO,wlcB64=WLC_LOGO;
+  doc.autoTable({
+    head:[['Lp.','Osoba','Firma','Branża','Data']],body:body,startY:52,
+    margin:{left:margin,right:margin},tableWidth:pw-2*margin,
+    columnStyles:{0:{cellWidth:12},1:{cellWidth:52},2:{cellWidth:60},3:{cellWidth:90},4:{cellWidth:53}},
+    styles:{font:'helvetica',fontSize:9,textColor:DA,cellPadding:2.5,valign:'middle',halign:'center',lineColor:[200,200,200],lineWidth:0.2},
+    headStyles:{fillColor:Y,textColor:DA,fontStyle:'bold',fontSize:9},
+    alternateRowStyles:{fillColor:LG},
+    didDrawPage:function(){
+      try{doc.addImage(logoB64,'PNG',margin,6,48,12);}catch(e){}
+      doc.setDrawColor(255,213,3);doc.setLineWidth(0.8);doc.line(margin,21,pw-margin,21);
+      doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(40,40,40);
+      doc.text(name+(inf&&inf.firma?' ('+inf.firma+')':''),pw/2,33,{align:'center'});
+      doc.setFontSize(12);doc.text('Spotkania 1 na 1',pw/2,42,{align:'center'});
+      doc.setFont('helvetica','normal');
+      try{doc.addImage(wlcB64,'PNG',margin,ph-14,55,6);}catch(e){}
+    }
+  });
+  return doc.output('arraybuffer');
+}
+
 function dl(blob,name){var url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);}
 </script>
 </body>
