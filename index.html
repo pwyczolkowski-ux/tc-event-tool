@@ -8,7 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
-:root{--navy:#121635;--red:#DC143C;--white:#FFFFFF;--g1:#F5F5F5;--g2:#E8E8E8;--g3:#AAAAAA;--g4:#555555;--font:'Roboto',Arial,sans-serif}
+:root{--navy:#121635;--red:#DC143C;--yellow:#FFD503;--white:#FFFFFF;--g1:#F5F5F5;--g2:#E8E8E8;--g3:#AAAAAA;--g4:#555555;--font:'Roboto',Arial,sans-serif}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--font);font-weight:300;background:var(--white);color:var(--navy);min-height:100vh;font-size:14px;line-height:1.6}
 header{background:var(--navy);height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;position:sticky;top:0;z-index:200}
@@ -18,8 +18,6 @@ header{background:var(--navy);height:60px;display:flex;align-items:center;justif
 .logo-dot{color:var(--red);font-weight:400;font-size:22px}
 #header-event-name{font-size:11px;font-weight:300;color:rgba(255,255,255,.4);letter-spacing:.04em;max-width:360px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 main{max-width:1140px;margin:0 auto;padding:32px 24px 60px}
-
-/* DROP ZONE */
 .drop-zone{border:2px dashed var(--g2);padding:48px 32px;text-align:center;cursor:pointer;transition:all .2s;position:relative;margin-bottom:20px}
 .drop-zone:hover,.drop-zone.drag-over{border-color:var(--navy);background:var(--g1)}
 .drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
@@ -33,48 +31,32 @@ main{max-width:1140px;margin:0 auto;padding:32px 24px 60px}
 .dz-file-dot{width:8px;height:8px;background:var(--red);flex-shrink:0}
 .dz-file-name{font-size:13px;font-weight:400;color:var(--navy);flex:1}
 .dz-change{font-size:11px;color:var(--g3);cursor:pointer;text-decoration:underline;white-space:nowrap}
-
-/* BADGE TEMPLATE INPUT */
-.badge-template-bar{display:flex;align-items:center;gap:12px;padding:11px 16px;border:1px solid var(--g2);background:var(--g1);margin-bottom:12px}
-.btb-label{font-size:10px;font-weight:400;text-transform:uppercase;letter-spacing:.08em;color:var(--g4);white-space:nowrap}
-.btb-status{font-size:12px;font-weight:300;color:var(--g3);flex:1}
-.btb-status.loaded{color:var(--navy);font-weight:400}
-.btb-btn{position:relative;overflow:hidden}
-.btb-btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
-
-/* EVENT BANNER */
-#event-banner{background:var(--navy);padding:28px 32px 24px;margin-bottom:24px;display:none;position:relative;overflow:hidden}
-#event-banner::after{content:'';position:absolute;right:28px;bottom:20px;width:14px;height:14px;background:var(--red)}
-#event-banner::before{content:'';position:absolute;right:48px;bottom:28px;width:6px;height:6px;background:var(--red);opacity:.5}
-.eb-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px}
-.eb-name{font-size:22px;font-weight:100;color:var(--white);letter-spacing:.02em}
-.eb-meta{font-size:11px;font-weight:300;color:rgba(255,255,255,.4);margin-top:6px;letter-spacing:.06em;text-transform:uppercase}
-.eb-stats{display:flex;gap:36px}
-.stat-val{font-size:28px;font-weight:100;color:var(--white);line-height:1}
-.stat-red{color:var(--red)}
-.stat-lab{font-size:9px;font-weight:400;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.1em;margin-top:5px}
-
-/* BUTTONS */
+.tpl-status-bar{display:flex;gap:20px;padding:10px 16px;border:1px solid var(--g2);background:var(--g1);margin-bottom:12px;font-size:11px;font-weight:300;align-items:center;flex-wrap:wrap}
+.tpl-item{display:flex;align-items:center;gap:6px}
+.tpl-dot{width:7px;height:7px;flex-shrink:0}
+.tpl-dot.ok{background:var(--navy)}.tpl-dot.err{background:var(--red)}.tpl-dot.wait{background:var(--g3)}
 .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 20px;font-family:var(--font);font-size:12px;font-weight:400;letter-spacing:.04em;cursor:pointer;border:none;transition:all .15s;text-transform:uppercase}
 .btn-navy{background:var(--navy);color:var(--white)}.btn-navy:hover:not(:disabled){background:#1e2547}
 .btn-outline{background:transparent;color:var(--navy);border:1px solid var(--navy)}.btn-outline:hover:not(:disabled){background:var(--g1)}
-.btn-ol{background:transparent;color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.25)}.btn-ol:hover:not(:disabled){background:rgba(255,255,255,.08)}
+.btn-red{background:var(--red);color:var(--white)}.btn-red:hover:not(:disabled){background:#b01030}
 .btn:disabled{opacity:.35;cursor:not-allowed}
 .btn-sm{padding:7px 15px;font-size:11px}
-
-/* TABS */
+#event-banner{background:var(--navy);padding:28px 32px 24px;margin-bottom:24px;display:none;position:relative;overflow:hidden}
+#event-banner::after{content:'';position:absolute;right:28px;bottom:20px;width:14px;height:14px;background:var(--red)}
+#event-banner::before{content:'';position:absolute;right:48px;bottom:28px;width:6px;height:6px;background:var(--red);opacity:.5}
+.eb-name{font-size:22px;font-weight:100;color:var(--white);letter-spacing:.02em}
+.eb-meta{font-size:11px;font-weight:300;color:rgba(255,255,255,.4);margin-top:6px;letter-spacing:.06em;text-transform:uppercase}
+.eb-stats{display:flex;gap:36px;margin-top:20px}
+.stat-val{font-size:28px;font-weight:100;color:var(--white);line-height:1}
+.stat-red{color:var(--red)}
+.stat-lab{font-size:9px;font-weight:400;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.1em;margin-top:5px}
 .tabs{display:flex;border-bottom:2px solid var(--g2);margin-bottom:24px}
 .tab{padding:12px 24px;font-family:var(--font);font-size:12px;font-weight:400;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;background:transparent;color:var(--g3);border:none;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
 .tab:hover{color:var(--navy)}.tab.active{color:var(--navy);border-bottom-color:var(--red)}
-
-/* FILTER BAR */
 .filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
 .filter-label{font-size:10px;font-weight:400;text-transform:uppercase;letter-spacing:.08em;color:var(--g3)}
 .pill{padding:5px 14px;font-family:var(--font);font-size:11px;font-weight:400;cursor:pointer;border:1px solid var(--g2);background:var(--white);color:var(--g4);transition:all .15s}
 .pill:hover{border-color:var(--navy);color:var(--navy)}.pill.on{background:var(--navy);color:var(--white);border-color:var(--navy)}
-.filter-sep{width:1px;height:16px;background:var(--g2);margin:0 4px}
-
-/* TABLE */
 .tbl-wrap{border:1px solid var(--g2)}
 .tbl-toolbar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--g2);background:var(--g1)}
 .tbl-count{font-size:12px;font-weight:300;color:var(--g4)}.tbl-count strong{color:var(--navy);font-weight:400}
@@ -91,13 +73,62 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--g1)}
 .tag-bni{background:#E8F5E9;color:#1B5E20}.tag-gosc{color:var(--red);border:1px solid var(--red)}
 .tag-other{color:var(--g3);border:1px solid var(--g2)}
 
-/* BADGE */
-.badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1px;background:var(--g2);border:1px solid var(--g2)}
-.badge-card{background:var(--white);padding:20px 18px;position:relative}
-.badge-card::after{content:'';position:absolute;top:14px;right:14px;width:6px;height:6px;background:var(--red)}
-.badge-name{font-size:15px;font-weight:400;color:var(--navy);line-height:1.3}
-.badge-firma{font-size:11px;font-weight:300;color:var(--g4);margin-top:6px}
-.badge-tag{margin-top:10px}
+/* BADGE GRID */
+.badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;padding:4px}
+.badge-card{cursor:pointer;transition:transform .15s,box-shadow .15s;position:relative}
+.badge-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(18,22,53,.15)}
+/* CC badge preview */
+.bp-cc{border:1.5px solid var(--g2);background:var(--white);display:flex;flex-direction:column;height:120px}
+.bp-cc-body{flex:1;padding:10px 12px;position:relative}
+.bp-cc-logo{font-size:8px;font-weight:500;color:var(--navy);letter-spacing:.08em;opacity:.5;margin-bottom:6px}
+.bp-cc-name{font-size:13px;font-weight:500;color:var(--navy);line-height:1.25}
+.bp-cc-firma{font-size:10px;font-weight:300;color:var(--g4);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bp-cc-dot{position:absolute;top:8px;right:8px;width:5px;height:5px;background:var(--red)}
+.bp-cc-footer{background:var(--yellow);padding:5px 10px;display:flex;justify-content:space-between;align-items:center}
+.bp-cc-wlc{font-size:7px;font-weight:700;color:var(--navy);letter-spacing:.03em}
+.bp-cc-group{font-size:8px;font-weight:400;color:var(--navy)}
+/* BNI badge preview */
+.bp-bni{border:1.5px solid #7B1FA2;background:var(--white);display:flex;flex-direction:column;height:120px}
+.bp-bni-body{flex:1;padding:10px 12px;position:relative}
+.bp-bni-logo{font-size:8px;font-weight:500;color:#7B1FA2;letter-spacing:.08em;opacity:.7;margin-bottom:6px}
+.bp-bni-name{font-size:13px;font-weight:500;color:var(--navy);line-height:1.25}
+.bp-bni-firma{font-size:10px;font-weight:300;color:var(--g4);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bp-bni-dot{position:absolute;top:8px;right:8px;width:5px;height:5px;background:#7B1FA2}
+.bp-bni-footer{background:#7B1FA2;padding:5px 10px;display:flex;justify-content:space-between;align-items:center}
+.bp-bni-wlc{font-size:7px;font-weight:700;color:var(--white);letter-spacing:.03em}
+.bp-bni-group{font-size:8px;font-weight:400;color:rgba(255,255,255,.8)}
+
+/* MODAL */
+#badge-modal{display:none;position:fixed;inset:0;background:rgba(18,22,53,.75);z-index:500;align-items:center;justify-content:center}
+#badge-modal.open{display:flex}
+.bm-content{background:var(--white);padding:32px;max-width:440px;width:90%;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.bm-close{position:absolute;top:14px;right:18px;font-size:22px;font-weight:100;cursor:pointer;background:none;border:none;color:var(--g4);line-height:1}
+.bm-close:hover{color:var(--navy)}
+/* CC modal badge */
+.bm-badge-cc{border:2px solid var(--g2);width:100%;margin-bottom:20px}
+.bm-cc-body{padding:24px 28px 18px;position:relative}
+.bm-cc-logo{font-size:10px;font-weight:500;color:var(--navy);letter-spacing:.1em;opacity:.5;margin-bottom:12px}
+.bm-cc-name{font-size:26px;font-weight:500;color:var(--navy);line-height:1.2}
+.bm-cc-div{width:40px;height:2px;background:var(--g2);margin:14px 0}
+.bm-cc-firma{font-size:14px;font-weight:400;color:var(--navy)}
+.bm-cc-branza{font-size:12px;font-weight:300;color:var(--g3);margin-top:4px}
+.bm-cc-dot{position:absolute;top:16px;right:16px;width:8px;height:8px;background:var(--red)}
+.bm-cc-footer{background:var(--yellow);padding:10px 28px;display:flex;justify-content:space-between;align-items:center}
+.bm-cc-wlc{font-size:10px;font-weight:700;color:var(--navy);letter-spacing:.04em}
+.bm-cc-group{font-size:11px;font-weight:400;color:var(--navy)}
+/* BNI modal badge */
+.bm-badge-bni{border:2px solid #7B1FA2;width:100%;margin-bottom:20px}
+.bm-bni-body{padding:24px 28px 18px;position:relative}
+.bm-bni-logo{font-size:10px;font-weight:500;color:#7B1FA2;letter-spacing:.1em;margin-bottom:12px}
+.bm-bni-name{font-size:26px;font-weight:500;color:var(--navy);line-height:1.2}
+.bm-bni-div{width:40px;height:2px;background:#7B1FA2;margin:14px 0}
+.bm-bni-firma{font-size:14px;font-weight:400;color:var(--navy)}
+.bm-bni-branza{font-size:12px;font-weight:300;color:var(--g3);margin-top:4px}
+.bm-bni-dot{position:absolute;top:16px;right:16px;width:8px;height:8px;background:#7B1FA2}
+.bm-bni-footer{background:#7B1FA2;padding:10px 28px;display:flex;justify-content:space-between;align-items:center}
+.bm-bni-wlc{font-size:10px;font-weight:700;color:var(--white);letter-spacing:.04em}
+.bm-bni-group{font-size:11px;font-weight:400;color:rgba(255,255,255,.8)}
+.bm-actions{display:flex;gap:10px;justify-content:flex-end}
 
 /* 1x1 */
 .x1-layout{display:grid;grid-template-columns:280px 1fr;gap:1px;background:var(--g2);border:1px solid var(--g2)}
@@ -131,18 +162,12 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--g1)}
 .x1-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:60px;text-align:center}
 .x1-empty-sq{width:28px;height:28px;background:var(--g2);margin:0 auto 14px}
 .x1-empty-txt{font-size:13px;font-weight:300;color:var(--g3)}
-.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.section-title{font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:.1em;color:var(--g4);display:flex;align-items:center;gap:10px}
-.section-title::before{content:'';display:inline-block;width:8px;height:8px;background:var(--red);flex-shrink:0}
-
-.loading{padding:40px;text-align:center;font-size:13px;font-weight:300;color:var(--g4)}
-.spinner{display:inline-block;width:16px;height:16px;border:1.5px solid var(--g2);border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px}
-@keyframes spin{to{transform:rotate(360deg)}}
 .error-bar{background:#FEF0F0;border:1px solid #FCCACA;border-left:3px solid var(--red);padding:12px 16px;margin-bottom:16px;font-size:12px;font-weight:300;color:#8B0000;display:none}
 .error-bar.show{display:block}
 
+/* PRINT */
 @media print{
-header,.drop-zone,.dz-loaded,.badge-template-bar,.tabs,.filter-bar,.tbl-toolbar,.x1-footer,.x1-sidebar,.x1-sw,.no-print{display:none!important}
+header,.drop-zone,.dz-loaded,.tpl-status-bar,.tabs,.filter-bar,.tbl-toolbar,.x1-footer,.x1-sidebar,.x1-sw,.no-print{display:none!important}
 body{font-size:11px}.tbl-wrap{border:none}th{font-size:9px;padding:5px 10px}td{padding:6px 10px;font-size:11px}
 #event-banner{display:block!important;padding:16px 0;background:none!important;margin-bottom:16px}
 #event-banner::after,#event-banner::before{display:none}
@@ -164,6 +189,12 @@ body{font-size:11px}.tbl-wrap{border:none}th{font-size:9px;padding:5px 10px}td{p
 .x1-pm-info{font-size:10px;font-weight:300;color:var(--g4);margin-top:2px}.x1-pm-dur{font-family:monospace;font-size:10px;color:var(--g4);text-align:right}
 .x1-pf{margin-top:12px;font-size:11px;font-weight:300;color:var(--g4);border-top:1px solid var(--g2);padding-top:8px}
 #print-all-x1{display:block!important}#main-app{display:none!important}
+/* Print single badge modal */
+body.print-badge #main-app{display:none!important}
+body.print-badge #badge-modal{display:block!important;position:static!important;background:none!important}
+body.print-badge .bm-content{box-shadow:none!important;max-width:100%!important;padding:0!important}
+body.print-badge .bm-close,.body.print-badge .bm-actions{display:none!important}
+body.print-badge #print-all-x1{display:none!important}
 }
 </style>
 </head>
@@ -175,8 +206,6 @@ body{font-size:11px}.tbl-wrap{border:none}th{font-size:9px;padding:5px 10px}td{p
 </header>
 
 <main id="main-app">
-
-  <!-- MAIN DROP ZONE -->
   <div class="drop-zone" id="drop-zone"
     ondragover="event.preventDefault();this.classList.add('drag-over')"
     ondragleave="this.classList.remove('drag-over')"
@@ -184,22 +213,18 @@ body{font-size:11px}.tbl-wrap{border:none}th{font-size:9px;padding:5px 10px}td{p
     <input type="file" accept=".xlsx,.xls" onchange="handleFile(this.files[0])">
     <div class="dz-icon"></div>
     <div class="dz-title">Wrzuć plik eventowy</div>
-    <div class="dz-sub">Przeciągnij plik <strong>.xlsx</strong> tutaj lub kliknij, żeby wybrać</div>
+    <div class="dz-sub">Przeciągnij plik <strong>.xlsx</strong> tutaj lub kliknij</div>
   </div>
-
   <div class="dz-loaded" id="dz-loaded">
     <div class="dz-file-dot"></div>
     <span class="dz-file-name" id="dz-file-name">—</span>
     <span class="dz-change" onclick="resetFile()">Zmień plik</span>
   </div>
-
   <div class="error-bar" id="error-bar"></div>
 
-  <!-- EVENT BANNER -->
   <div id="event-banner">
-    <div class="eb-top">
-      <div><div class="eb-name" id="eb-name">—</div><div class="eb-meta" id="eb-meta">—</div></div>
-    </div>
+    <div class="eb-name" id="eb-name">—</div>
+    <div class="eb-meta" id="eb-meta">—</div>
     <div class="eb-stats">
       <div><div class="stat-val" id="stat-total">—</div><div class="stat-lab">Zaproszonych</div></div>
       <div><div class="stat-val" id="stat-conf">—</div><div class="stat-lab">Potwierdzonych</div></div>
@@ -208,7 +233,6 @@ body{font-size:11px}.tbl-wrap{border:none}th{font-size:9px;padding:5px 10px}td{p
     </div>
   </div>
 
-  <!-- APP -->
   <div id="app-content" style="display:none">
     <div class="tabs no-print">
       <button class="tab active" onclick="switchTab('lists',this)">Listy uczestników</button>
@@ -216,7 +240,7 @@ body{font-size:11px}.tbl-wrap{border:none}th{font-size:9px;padding:5px 10px}td{p
       <button class="tab" onclick="switchTab('x1',this)">Zestawienia 1×1</button>
     </div>
 
-    <!-- LISTS TAB -->
+    <!-- LISTS -->
     <div id="tab-lists">
       <div class="filter-bar no-print">
         <span class="filter-label">Filtr:</span>
@@ -228,20 +252,13 @@ body{font-size:11px}.tbl-wrap{border:none}th{font-size:9px;padding:5px 10px}td{p
       <div id="list-container"></div>
     </div>
 
-    <!-- BADGE TAB -->
+    <!-- BADGE -->
     <div id="tab-badge" style="display:none">
-
-      <!-- Badge template loader -->
-      <div class="badge-template-bar no-print">
-        <span class="btb-label">Szablon badge (.pptx)</span>
-        <span class="btb-status" id="btb-status">Nie wczytano</span>
-        <button class="btn btn-outline btn-sm btb-btn">
-          Wczytaj szablon
-          <input type="file" accept=".pptx" onchange="loadBadgeTemplate(this.files[0])">
-        </button>
+      <div class="tpl-status-bar no-print" id="tpl-status-bar">
+        <span style="font-size:10px;font-weight:400;text-transform:uppercase;letter-spacing:.08em;color:#555">Szablony:</span>
+        <span class="tpl-item"><span class="tpl-dot wait" id="dot-cc"></span><span id="lbl-cc">Badge CC — ładowanie…</span></span>
+        <span class="tpl-item"><span class="tpl-dot wait" id="dot-bni"></span><span id="lbl-bni">Badge BNI+ — ładowanie…</span></span>
       </div>
-
-      <!-- Badge filter bar -->
       <div class="filter-bar no-print">
         <span class="filter-label">Filtr:</span>
         <button class="pill on" onclick="setBadgeFilter('all',this)">Wszyscy</button>
@@ -249,23 +266,19 @@ body{font-size:11px}.tbl-wrap{border:none}th{font-size:9px;padding:5px 10px}td{p
         <button class="pill" onclick="setBadgeFilter('present',this)">Obecni</button>
         <button class="pill" onclick="setBadgeFilter('absent',this)">Nieobecni</button>
       </div>
-
       <div id="badge-container"></div>
     </div>
 
-    <!-- 1x1 TAB -->
+    <!-- 1x1 -->
     <div id="tab-x1" style="display:none">
-      <div class="section-head no-print" style="margin-bottom:16px">
-        <span class="section-title">Zestawienia 1×1</span>
-        <button class="btn btn-navy btn-sm" onclick="printAll1x1()">
-          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-          Drukuj wszystkie
-        </button>
+      <div class="no-print" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <span style="font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:.1em;color:#555;display:flex;align-items:center;gap:10px"><span style="display:inline-block;width:8px;height:8px;background:var(--red)"></span>Zestawienia 1×1</span>
+        <button class="btn btn-navy btn-sm" onclick="printAll1x1()">Drukuj wszystkie</button>
       </div>
       <div class="x1-layout">
         <div class="x1-sidebar">
-          <div class="x1-sidebar-head">Uczestnicy ze spotkaniami 1×1</div>
-          <div class="x1-sw"><input class="x1-si" id="x1-search" type="text" placeholder="Szukaj osoby…" oninput="filterX1(this.value)"></div>
+          <div class="x1-sidebar-head">Uczestnicy ze spotkaniami</div>
+          <div class="x1-sw"><input class="x1-si" id="x1-search" type="text" placeholder="Szukaj…" oninput="filterX1(this.value)"></div>
           <div class="x1-list" id="x1-sidebar-list"></div>
         </div>
         <div class="x1-detail" id="x1-detail">
@@ -274,45 +287,64 @@ body{font-size:11px}.tbl-wrap{border:none}th{font-size:9px;padding:5px 10px}td{p
       </div>
     </div>
   </div>
-
 </main>
+
+<!-- BADGE MODAL -->
+<div id="badge-modal" onclick="closeBadgeModal()">
+  <div class="bm-content" onclick="event.stopPropagation()">
+    <button class="bm-close" onclick="closeBadgeModal()">×</button>
+    <div id="bm-badge-content"></div>
+    <div class="bm-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeBadgeModal()">Zamknij</button>
+      <button class="btn btn-red btn-sm" onclick="printSingleBadge()">
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Drukuj ten badge
+      </button>
+    </div>
+  </div>
+</div>
 
 <div id="print-all-x1" style="display:none"></div>
 
 <script>
-// ════ COLUMN INDICES — Lista zaproszeń ════
+// ════ COLUMNS ════
 var C={IMIE:1,NAZWISKO:2,GRUPA:5,FIRMA:6,BRANZA:7,SKALA:8,DYREKTOR:9,EMAIL:10,ROLA:14,POTW:37,OBECNY:38,CC:39,CCP:40,BNI:41,GOSC:42};
-
-// ════ EMBEDDED BADGE TEMPLATE ════
-// Szablon pobierany z repozytorium GitHub Pages
 
 // ════ STATE ════
 var participants=[],meetings=[],lookupByName={},x1Map={},x1List=[],selectedPerson=null;
+var directorMap={};
 var eventName='',eventMeta='';
-var currentFilter='all',badgeFilter='all',currentView='full';
-var badgeTemplateBuffer=null,badgeTemplateXml=null,badgeTemplateRelsXml=null;
+var currentFilter='all',badgeFilter='all';
+var ccTpl={buf:null,xml:null,rels:null};
+var bniTpl={buf:null,xml:null,rels:null};
+var selectedBadgePerson=null;
 
-// ════ AUTO-INIT BADGE TEMPLATE FROM EMBEDDED DATA ════
-document.addEventListener('DOMContentLoaded', function(){
-  initEmbeddedBadge();
-});
-async function initEmbeddedBadge(){
+// ════ LOAD BADGE TEMPLATES ════
+document.addEventListener('DOMContentLoaded', function(){ initBadgeTemplates(); });
+
+async function loadTpl(url, tpl, dotId, lblId){
   try{
-    var res = await fetch('./Badge%20CC.pptx');
-    if(!res.ok) throw new Error('HTTP ' + res.status);
-    badgeTemplateBuffer = await res.arrayBuffer();
-    var zip = await JSZip.loadAsync(badgeTemplateBuffer);
-    badgeTemplateXml     = await zip.file('ppt/slides/slide1.xml').async('string');
-    badgeTemplateRelsXml = await zip.file('ppt/slides/_rels/slide1.xml.rels').async('string');
-    document.getElementById('btb-status').textContent = 'Badge CC.pptx (załadowany)';
-    document.getElementById('btb-status').classList.add('loaded');
+    var res=await fetch(url);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    tpl.buf=await res.arrayBuffer();
+    var zip=await JSZip.loadAsync(tpl.buf);
+    tpl.xml=await zip.file('ppt/slides/slide1.xml').async('string');
+    tpl.rels=await zip.file('ppt/slides/_rels/slide1.xml.rels').async('string');
+    document.getElementById(dotId).className='tpl-dot ok';
+    document.getElementById(lblId).textContent=url.split('/').pop().replace('%20',' ')+' ✓';
   }catch(e){
-    console.warn('Błąd ładowania szablonu:', e);
-    document.getElementById('btb-status').textContent = 'Nie można pobrać szablonu — wczytaj ręcznie';
+    document.getElementById(dotId).className='tpl-dot err';
+    document.getElementById(lblId).textContent=url.split('/').pop().replace('%20',' ')+' — brak';
   }
 }
 
-// ════ MAIN FILE HANDLING ════
+async function initBadgeTemplates(){
+  await loadTpl('./Badge%20CC.pptx',ccTpl,'dot-cc','lbl-cc');
+  await loadTpl('./Badge%20BNI+.pptx',bniTpl,'dot-bni','lbl-bni');
+  renderBadgeView();
+}
+
+// ════ FILE HANDLING ════
 function handleDrop(e){e.preventDefault();document.getElementById('drop-zone').classList.remove('drag-over');var f=e.dataTransfer.files[0];if(f)handleFile(f)}
 function handleFile(file){
   if(!file)return;
@@ -324,31 +356,15 @@ function handleFile(file){
   var r=new FileReader();r.onload=function(e){parseWorkbook(e.target.result)};r.readAsArrayBuffer(file);
 }
 function resetFile(){
-  document.getElementById('drop-zone').style.display='';document.getElementById('dz-loaded').classList.remove('show');
-  document.getElementById('event-banner').style.display='none';document.getElementById('app-content').style.display='none';
+  document.getElementById('drop-zone').style.display='';
+  document.getElementById('dz-loaded').classList.remove('show');
+  document.getElementById('event-banner').style.display='none';
+  document.getElementById('app-content').style.display='none';
   document.getElementById('header-event-name').textContent='';
   participants=[];meetings=[];selectedPerson=null;
 }
 function showError(msg){var el=document.getElementById('error-bar');el.textContent=msg;el.classList.add('show')}
 function hideError(){document.getElementById('error-bar').classList.remove('show')}
-
-// ════ BADGE TEMPLATE HANDLING ════
-function loadBadgeTemplate(file){
-  if(!file||!file.name.match(/\.pptx$/i)){showError('Wybierz plik .pptx (szablon badge)');return}
-  var r=new FileReader();
-  r.onload=async function(e){
-    try{
-      badgeTemplateBuffer=e.target.result;
-      var zip=await JSZip.loadAsync(badgeTemplateBuffer);
-      badgeTemplateXml    =await zip.file('ppt/slides/slide1.xml').async('string');
-      badgeTemplateRelsXml=await zip.file('ppt/slides/_rels/slide1.xml.rels').async('string');
-      document.getElementById('btb-status').textContent=file.name;
-      document.getElementById('btb-status').classList.add('loaded');
-      renderBadgeView(); // refresh to show enabled generate button
-    }catch(err){showError('Błąd odczytu szablonu: '+err.message)}
-  };
-  r.readAsArrayBuffer(file);
-}
 
 // ════ PARSE WORKBOOK ════
 function parseWorkbook(buffer){
@@ -357,12 +373,25 @@ function parseWorkbook(buffer){
     var needed=['PARAMETRY WYDARZENIA','Lista zaproszeń','Odbyte 1x1'];
     for(var i=0;i<needed.length;i++){if(!wb.Sheets[needed[i]]){showError('Brak zakładki "'+needed[i]+'"');return}}
     parseParams(sheetToArr(wb.Sheets['PARAMETRY WYDARZENIA']));
+    if(wb.Sheets['DANE WEJŚCIOWE']) parseDirectors(sheetToArr(wb.Sheets['DANE WEJŚCIOWE']));
     parseParticipants(sheetToArr(wb.Sheets['Lista zaproszeń']));
     parseMeetings(sheetToArr(wb.Sheets['Odbyte 1x1']));
     renderAll();hideError();
-  }catch(e){console.error(e);showError('Błąd odczytu pliku: '+e.message)}
+  }catch(e){console.error(e);showError('Błąd: '+e.message)}
 }
 function sheetToArr(ws){return XLSX.utils.sheet_to_json(ws,{header:1,defval:'',blankrows:false})}
+
+function parseDirectors(rows){
+  directorMap={};
+  var inSection=false;
+  rows.forEach(function(r){
+    if((r[0]||'').toString().trim()==='LISTA DYREKTORÓW'){inSection=true;return}
+    if(inSection){
+      var name=(r[1]||'').toString().trim(),init=(r[2]||'').toString().trim();
+      if(init) directorMap[init]=name;
+    }
+  });
+}
 
 function parseParams(rows){
   var name='',date='',miasto='',grupa='';
@@ -371,12 +400,11 @@ function parseParams(rows){
     if(k.indexOf('nazwa')>=0)name=v;if(k.indexOf('miasto')>=0)miasto=v;
     if(k.indexOf('grupa')>=0)grupa=v;if(k.indexOf('data')>=0&&r[2])date=fmtDate(r[2]);
   });
-  eventName=name||('Spotkanie Grupy '+grupa+' '+miasto);
+  eventName=name||('Spotkanie '+grupa+' '+miasto);
   eventMeta=[date,grupa,miasto.toUpperCase()].filter(Boolean).join(' · ');
 }
 function fmtDate(v){if(!v)return'';if(typeof v==='string')return v;if(typeof v==='number'){var d=XLSX.SSF.parse_date_code(v);if(d)return d.d+'.'+pad2(d.m)+'.'+d.y}return String(v)}
 function pad2(n){return n<10?'0'+n:String(n)}
-
 function isTrue(v){return v===true||v===1||v==='TRUE'||v==='PRAWDA'||v==='1'||v==='true'}
 
 function parseParticipants(rows){
@@ -434,7 +462,6 @@ function filterByStatus(filter){
     return true;
   });
 }
-
 function typeTag(p){
   if(p.isCCP)return{label:'CC+',cls:'tag-ccp'};if(p.isCC)return{label:'CC',cls:'tag-cc'};
   if(p.isBNI)return{label:'BNI+',cls:'tag-bni'};if(p.isGosc)return{label:'Gość',cls:'tag-gosc'};
@@ -444,87 +471,152 @@ function typeTag(p){
 // ════ LISTS TAB ════
 function renderListTab(){
   var list=filterByStatus(currentFilter),el=document.getElementById('list-container');
-  var rows=list.map(function(p,i){var t=typeTag(p);return'<tr><td class="td-lp">'+(i+1)+'</td><td><div class="td-nm">'+esc(p.imie+' '+p.nazwisko)+'</div>'+(p.rola?'<div class="td-ns">'+esc(p.rola)+'</div>':'')+'</td><td>'+esc(p.firma)+'</td><td class="td-mono" style="max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(p.branza)+'</td><td class="td-mono" style="max-width:120px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(p.skala)+'</td><td><span class="type-tag '+t.cls+'">'+t.label+'</span></td><td class="td-mono" title="'+esc(p.dyrektor)+'">'+esc(p.dyrektor)+'</td></tr>'}).join('');
-  el.innerHTML='<div class="tbl-wrap"><div class="tbl-toolbar no-print"><span class="tbl-count">Wynik: <strong>'+list.length+'</strong> '+noun(list.length,'osoba','osoby','osób')+'</span><div class="tbl-actions"><button class="btn btn-outline btn-sm" onclick="exportCSV()">Pobierz CSV</button><button class="btn btn-navy btn-sm" onclick="window.print()">Drukuj</button></div></div><table><thead><tr><th>#</th><th>Imię i nazwisko</th><th>Firma</th><th>Branża</th><th>Skala</th><th>Typ</th><th>Dyrektor</th></tr></thead><tbody>'+(rows||'<tr><td colspan="7" style="text-align:center;padding:30px;color:#aaa;font-weight:300">Brak wyników</td></tr>')+'</tbody></table></div>';
+  var rows=list.map(function(p,i){var t=typeTag(p);return'<tr><td class="td-lp">'+(i+1)+'</td><td><div class="td-nm">'+esc(p.imie+' '+p.nazwisko)+'</div>'+(p.rola?'<div class="td-ns">'+esc(p.rola)+'</div>':'')+'</td><td>'+esc(p.firma)+'</td><td class="td-mono" style="max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(p.branza)+'</td><td class="td-mono" style="max-width:120px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(p.skala)+'</td><td><span class="type-tag '+t.cls+'">'+t.label+'</span></td><td class="td-mono" title="'+esc(directorMap[p.dyrektor]||p.dyrektor)+'" style="cursor:default">'+esc(p.dyrektor)+'</td></tr>'}).join('');
+  el.innerHTML='<div class="tbl-wrap"><div class="tbl-toolbar no-print"><span class="tbl-count">Wynik: <strong>'+list.length+'</strong> '+noun(list.length,'osoba','osoby','osób')+'</span><div class="tbl-actions"><button class="btn btn-outline btn-sm" onclick="exportCSV()">Pobierz CSV</button><button class="btn btn-navy btn-sm" onclick="window.print()">Drukuj</button></div></div><table><thead><tr><th>#</th><th>Imię i nazwisko</th><th>Firma</th><th>Branża</th><th>Skala</th><th>Typ</th><th>Dyrektor</th></tr></thead><tbody>'+(rows||'<tr><td colspan="7" style="text-align:center;padding:30px;color:#aaa">Brak wyników</td></tr>')+'</tbody></table></div>';
 }
 
 // ════ BADGE TAB ════
 function renderBadgeView(){
   var list=filterByStatus(badgeFilter),el=document.getElementById('badge-container');
-  var hasTemplate=!!badgeTemplateXml;
-  var genBtn=hasTemplate
-    ?'<button class="btn btn-red btn-sm" onclick="generateBadgePPTX()"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Generuj PPTX</button>'
-    :'<button class="btn btn-outline btn-sm" disabled title="Wczytaj najpierw szablon badge">Generuj PPTX</button>';
-  var cards=list.map(function(p){var t=typeTag(p);return'<div class="badge-card"><div class="badge-name">'+esc(p.imie)+'<br>'+esc(p.nazwisko)+'</div><div class="badge-firma">'+esc(p.firma)+'</div><div class="badge-tag"><span class="type-tag '+t.cls+'">'+t.label+'</span></div></div>'}).join('');
-  el.innerHTML='<div class="tbl-wrap"><div class="tbl-toolbar no-print"><span class="tbl-count">Badge: <strong>'+list.length+'</strong> '+noun(list.length,'osoba','osoby','osób')+'</span><div class="tbl-actions">'+genBtn+'<button class="btn btn-navy btn-sm" onclick="window.print()">Drukuj</button></div></div><div class="badge-grid">'+cards+'</div></div>';
+  var canGen=ccTpl.xml!=null;
+  var genBtn=canGen
+    ?'<button class="btn btn-red btn-sm" onclick="generateBadgePPTX()"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Generuj PPTX ('+list.length+')</button>'
+    :'<button class="btn btn-outline btn-sm" disabled>Generuj PPTX</button>';
+
+  var cards=list.map(function(p){
+    var isBNI=p.isBNI&&bniTpl.xml;
+    return '<div class="badge-card" onclick="openBadgeModal(\''+escAttr(p.pelne)+'\')">'+(isBNI?bniCard(p):ccCard(p))+'</div>';
+  }).join('');
+
+  el.innerHTML='<div class="tbl-wrap"><div class="tbl-toolbar no-print"><span class="tbl-count">Badge: <strong>'+list.length+'</strong> '+noun(list.length,'osoba','osoby','osób')+'</span><div class="tbl-actions">'+genBtn+'<button class="btn btn-navy btn-sm" onclick="window.print()">Drukuj</button></div></div><div class="badge-grid" style="padding:12px">'+cards+'</div></div>';
 }
+
+function ccCard(p){
+  return '<div class="bp-cc"><div class="bp-cc-body"><div class="bp-cc-dot"></div><div class="bp-cc-logo">CORPORATE CONNECTIONS™</div><div class="bp-cc-name">'+esc(p.imie)+'<br>'+esc(p.nazwisko)+'</div><div class="bp-cc-firma">'+esc(p.firma)+'</div></div><div class="bp-cc-footer"><span class="bp-cc-wlc">Where Leaders Connect™</span><span class="bp-cc-group">'+esc(p.grupa)+'</span></div></div>';
+}
+function bniCard(p){
+  return '<div class="bp-bni"><div class="bp-bni-body"><div class="bp-bni-dot"></div><div class="bp-bni-logo">BNI+</div><div class="bp-bni-name">'+esc(p.imie)+'<br>'+esc(p.nazwisko)+'</div><div class="bp-bni-firma">'+esc(p.firma)+'</div></div><div class="bp-bni-footer"><span class="bp-bni-wlc">Where Leaders Connect™</span><span class="bp-bni-group">'+esc(p.grupa)+'</span></div></div>';
+}
+
+// ════ BADGE MODAL ════
+function openBadgeModal(pelne){
+  var p=lookupByName[pelne.toLowerCase()];if(!p)return;
+  selectedBadgePerson=p;
+  var isBNI=p.isBNI&&bniTpl.xml;
+  var html=isBNI?bniModalBadge(p):ccModalBadge(p);
+  document.getElementById('bm-badge-content').innerHTML=html;
+  document.getElementById('badge-modal').classList.add('open');
+}
+function closeBadgeModal(){
+  document.getElementById('badge-modal').classList.remove('open');
+  selectedBadgePerson=null;
+}
+function ccModalBadge(p){
+  return '<div class="bm-badge-cc"><div class="bm-cc-body"><div class="bm-cc-dot"></div><div class="bm-cc-logo">CORPORATE CONNECTIONS™</div><div class="bm-cc-name">'+esc(p.imie)+' '+esc(p.nazwisko)+'</div><div class="bm-cc-div"></div><div class="bm-cc-firma">'+esc(p.firma)+'</div><div class="bm-cc-branza">'+esc(p.branza)+'</div></div><div class="bm-cc-footer"><span class="bm-cc-wlc">Where Leaders Connect™</span><span class="bm-cc-group">'+esc(p.grupa)+'</span></div></div>';
+}
+function bniModalBadge(p){
+  return '<div class="bm-badge-bni"><div class="bm-bni-body"><div class="bm-bni-dot"></div><div class="bm-bni-logo">BNI+</div><div class="bm-bni-name">'+esc(p.imie)+' '+esc(p.nazwisko)+'</div><div class="bm-bni-div"></div><div class="bm-bni-firma">'+esc(p.firma)+'</div><div class="bm-bni-branza">'+esc(p.branza)+'</div></div><div class="bm-bni-footer"><span class="bm-bni-wlc">Where Leaders Connect™</span><span class="bm-bni-group">'+esc(p.grupa)+'</span></div></div>';
+}
+function printSingleBadge(){
+  document.body.classList.add('print-badge');
+  window.print();
+  document.body.classList.remove('print-badge');
+}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeBadgeModal()});
 
 // ════ GENERATE BADGE PPTX ════
 async function generateBadgePPTX(){
   var list=filterByStatus(badgeFilter);
-  if(!list.length){alert('Brak uczestników na liście.');return}
-  if(!badgeTemplateBuffer){alert('Wczytaj szablon badge (.pptx).');return}
-
+  if(!list.length){alert('Brak uczestników.');return}
+  if(!ccTpl.buf){alert('Brak szablonu CC.');return}
   try{
-    var zip=await JSZip.loadAsync(badgeTemplateBuffer);
+    var ccZip=await JSZip.loadAsync(ccTpl.buf);
+    var bniZip=bniTpl.buf?await JSZip.loadAsync(bniTpl.buf):null;
 
-    // Get all needed files
-    var presXml     =await zip.file('ppt/presentation.xml').async('string');
-    var presRelsXml =await zip.file('ppt/_rels/presentation.xml.rels').async('string');
-    var ctXml       =await zip.file('[Content_Types].xml').async('string');
-
-    // Slide 1 → person 0 (overwrite existing)
-    zip.file('ppt/slides/slide1.xml', fillBadge(badgeTemplateXml, list[0]));
-    // Rels for slide1 stays as-is
-
-    // Additional slides
-    var newPresRels='', newCt='', newSldIds='';
-    var nextRelId=200; // safe starting point for rId numbers
-
-    for(var i=1;i<list.length;i++){
-      var n=i+1;
-      var rId='rId_b'+nextRelId++;
-      var slideId=400+i;
-
-      // New slide XML
-      zip.file('ppt/slides/slide'+n+'.xml', fillBadge(badgeTemplateXml, list[i]));
-      // Copy rels (same images, layout refs)
-      zip.file('ppt/slides/_rels/slide'+n+'.xml.rels', badgeTemplateRelsXml);
-
-      newPresRels+='<Relationship Id="'+rId+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide'+n+'.xml"/>\n  ';
-      newCt+='<Override PartName="/ppt/slides/slide'+n+'.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>\n  ';
-      newSldIds+='<p:sldId id="'+slideId+'" r:id="'+rId+'"/>\n    ';
+    // BNI+ media — kopiuj do output z nowymi nazwami, zaktualizuj rels
+    var bniMediaFiles={};  // rId -> {newName, data}
+    var bniRelsForOutput=ccTpl.rels; // fallback
+    if(bniZip){
+      var rawBniRels=bniTpl.rels;
+      var imgMatches=[...rawBniRels.matchAll(/Id="(rId\d+)"[^>]*image[^>]*Target="\.\.\/media\/([^"]+)"/g)];
+      var mediaIdx=100;
+      for(var m of imgMatches){
+        var rId=m[1],fname=m[2];
+        var data=null;
+        try{data=await bniZip.file('ppt/media/'+fname).async('arraybuffer')}catch(e){}
+        if(data) bniMediaFiles[rId]={newName:'bni'+mediaIdx+++'.'+fname.split('.').pop(),data:data,oldName:fname};
+      }
+      // Buduj nowe rels dla BNI+ slajdów — non-image z CC, image z BNI+ (nowe nazwy)
+      var newBniRels='<?xml version="1.0" encoding="utf-8"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
+      for(var rel of [...ccTpl.rels.matchAll(/<Relationship[^>]+>/g)]){
+        if(!rel[0].includes('image')) newBniRels+='\n  '+rel[0];
+      }
+      for(var [rId2,info] of Object.entries(bniMediaFiles)){
+        newBniRels+='\n  <Relationship Id="'+rId2+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/'+info.newName+'"/>';
+      }
+      newBniRels+='\n</Relationships>';
+      bniRelsForOutput=newBniRels;
     }
 
-    // Update presentation.xml — inject new sldId entries
-    presXml=presXml.replace(/<\/p:sldIdLst>/, '    '+newSldIds+'</p:sldIdLst>');
-    // Update presentation.xml.rels
+    // Output = CC template jako baza
+    var outZip=await JSZip.loadAsync(ccTpl.buf);
+
+    // Dodaj BNI+ media do output
+    for(var [,info2] of Object.entries(bniMediaFiles)){
+      outZip.file('ppt/media/'+info2.newName,info2.data);
+    }
+
+    var presXml=await outZip.file('ppt/presentation.xml').async('string');
+    var presRelsXml=await outZip.file('ppt/_rels/presentation.xml.rels').async('string');
+    var ctXml=await outZip.file('[Content_Types].xml').async('string');
+
+    // Dodaj content types dla BNI+ mediów
+    for(var [,info3] of Object.entries(bniMediaFiles)){
+      var ext3=info3.newName.split('.').pop().toLowerCase();
+      var mime=ext3==='png'?'image/png':ext3==='jpg'||ext3==='jpeg'?'image/jpeg':'image/png';
+      if(!ctXml.includes('Extension="'+ext3+'"'))
+        ctXml=ctXml.replace('</Types>','  <Default Extension="'+ext3+'" ContentType="'+mime+'"/>\n</Types>');
+    }
+
+    // Slajd 1 = osoba 0
+    var p0=list[0];var isB0=p0.isBNI&&bniZip;
+    outZip.file('ppt/slides/slide1.xml',fillBadge(isB0?bniTpl.xml:ccTpl.xml,p0));
+    if(isB0) outZip.file('ppt/slides/_rels/slide1.xml.rels',bniRelsForOutput);
+
+    var newPresRels='',newCt='',newSldIds='';
+    var nextRel=200;
+    for(var i=1;i<list.length;i++){
+      var p=list[i];var isBNI=p.isBNI&&bniZip;
+      var n=i+1;var rId='rId_b'+(nextRel++);var sldId=400+i;
+      outZip.file('ppt/slides/slide'+n+'.xml',fillBadge(isBNI?bniTpl.xml:ccTpl.xml,p));
+      outZip.file('ppt/slides/_rels/slide'+n+'.xml.rels',isBNI?bniRelsForOutput:ccTpl.rels);
+      newPresRels+='<Relationship Id="'+rId+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide'+n+'.xml"/>\n  ';
+      newCt+='<Override PartName="/ppt/slides/slide'+n+'.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>\n  ';
+      newSldIds+='<p:sldId id="'+sldId+'" r:id="'+rId+'"/>\n    ';
+    }
+    presXml=presXml.replace(/<\/p:sldIdLst>/,'    '+newSldIds+'</p:sldIdLst>');
     presRelsXml=presRelsXml.replace('</Relationships>','  '+newPresRels+'</Relationships>');
-    // Update [Content_Types].xml
     ctXml=ctXml.replace('</Types>','  '+newCt+'</Types>');
+    outZip.file('ppt/presentation.xml',presXml);
+    outZip.file('ppt/_rels/presentation.xml.rels',presRelsXml);
+    outZip.file('[Content_Types].xml',ctXml);
 
-    zip.file('ppt/presentation.xml', presXml);
-    zip.file('ppt/_rels/presentation.xml.rels', presRelsXml);
-    zip.file('[Content_Types].xml', ctXml);
-
-    var blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
+    var blob=await outZip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
     var url=URL.createObjectURL(blob);
-    var a=document.createElement('a');
-    a.href=url;a.download='Badge_'+(eventName||'CC').replace(/[^a-zA-Z0-9_\- ]/g,'_')+'.pptx';
+    var a=document.createElement('a');a.href=url;
+    a.download='Badge_'+(eventName||'CC').replace(/[^a-zA-Z0-9_\- ]/g,'_')+'.pptx';
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }catch(err){console.error(err);showError('Błąd generowania PPTX: '+err.message)}
 }
 
-function fillBadge(templateXml, p){
-  return templateXml
-    .replace(/\{\{imię\}\}/g,   escXml(p.imie))
-    .replace(/\{\{nazwisko\}\}/g, escXml(p.nazwisko))
-    .replace(/\{\{firma\}\}/g,   escXml(p.firma))
-    .replace(/\{\{branża\}\}/g,  escXml(p.branza))
-    .replace(/\{\{grupa\}\}/g,   escXml(p.grupa));
+function fillBadge(xml,p){
+  return xml.replace(/\{\{imię\}\}/g,escXml(p.imie))
+    .replace(/\{\{nazwisko\}\}/g,escXml(p.nazwisko))
+    .replace(/\{\{firma\}\}/g,escXml(p.firma))
+    .replace(/\{\{branża\}\}/g,escXml(p.branza))
+    .replace(/\{\{grupa\}\}/g,escXml(p.grupa));
 }
-
 function escXml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;')}
 
 // ════ 1x1 ════
@@ -541,7 +633,7 @@ function renderX1Detail(name){
   if(!person)return;
   var totalMin=person.meetings.reduce(function(s,m){return s+(parseInt(m.dur)||0)},0);
   var rows=person.meetings.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'')}).map(function(m,i){var pi=lookupByName[m.partner.toLowerCase()];var ts=m.start?(m.start+(m.end?'–'+m.end:'')):'—';return'<div class="x1-mr"><div class="x1-mt">'+esc(ts)+'</div><div><div class="x1-mn">'+(i+1)+'. '+esc(m.partner)+'</div><div class="x1-md">'+esc(pi?[pi.firma,pi.branza].filter(Boolean).join(' · '):'')+'</div></div><div class="x1-dur">'+esc(m.dur?m.dur+' min':'—')+'</div></div>'}).join('');
-  el.innerHTML='<div class="x1-dh"><div class="x1-dhn">'+esc(name)+'</div><div class="x1-dhf">'+esc(info?info.firma||'':'')+'</div><div class="x1-dhs"><span>'+person.meetings.length+'</span> spotkań'+(totalMin?' &nbsp;·&nbsp; <span>'+totalMin+'</span> min łącznie':'')+'</div></div><div class="x1-meetings">'+(rows||'<div style="padding:30px;text-align:center;color:#aaa">Brak danych</div>')+'</div><div class="x1-footer no-print"><button class="btn btn-outline btn-sm" onclick="printOnePerson(\''+escAttr(name)+'\')" >Drukuj zestawienie</button></div>';
+  el.innerHTML='<div class="x1-dh"><div class="x1-dhn">'+esc(name)+'</div><div class="x1-dhf">'+esc(info?info.firma||'':'')+'</div><div class="x1-dhs"><span>'+person.meetings.length+'</span> spotkań'+(totalMin?' &nbsp;·&nbsp; <span>'+totalMin+'</span> min':'')+'</div></div><div class="x1-meetings">'+rows+'</div><div class="x1-footer no-print"><button class="btn btn-outline btn-sm" onclick="printOnePerson(\''+escAttr(name)+'\')">Drukuj zestawienie</button></div>';
 }
 
 // ════ PRINT 1x1 ════
@@ -549,7 +641,7 @@ function buildPersonPage(name){
   var person=x1Map[name],info=lookupByName[name.toLowerCase()];if(!person)return'';
   var totalMin=person.meetings.reduce(function(s,m){return s+(parseInt(m.dur)||0)},0);
   var rows=person.meetings.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'')}).map(function(m,i){var pi=lookupByName[m.partner.toLowerCase()];return'<div class="x1-pm"><div class="x1-pm-time">'+esc(m.start||'—')+'</div><div><div class="x1-pm-name">'+(i+1)+'. '+esc(m.partner)+'</div><div class="x1-pm-info">'+esc(pi?[pi.firma,pi.branza].filter(Boolean).join(' · '):'')+'</div></div><div class="x1-pm-dur">'+esc(m.dur?m.dur+' min':'')+'</div></div>'}).join('');
-  return'<div class="x1-print-page"><div class="x1-ph"><div class="x1-ph-name">'+esc(name)+(info&&info.firma?' · '+esc(info.firma):'')+'</div><div class="x1-ph-event">'+esc(eventName)+' · '+esc(eventMeta)+'</div></div><div style="font-size:11px;font-weight:400;color:#121635;margin-bottom:10px">Twoje spotkania 1×1 ('+person.meetings.length+'):</div>'+rows+(totalMin?'<div class="x1-pf">Łącznie: '+totalMin+' minut rozmów</div>':'')+'</div>';
+  return'<div class="x1-print-page"><div class="x1-ph"><div class="x1-ph-name">'+esc(name)+(info&&info.firma?' · '+esc(info.firma):'')+'</div><div class="x1-ph-event">'+esc(eventName)+' · '+esc(eventMeta)+'</div></div>'+rows+(totalMin?'<div class="x1-pf">Łącznie: '+totalMin+' minut</div>':'')+'</div>';
 }
 function printOnePerson(name){document.getElementById('print-all-x1').innerHTML=buildPersonPage(name);window.print()}
 function printAll1x1(){document.getElementById('print-all-x1').innerHTML=x1List.map(function(p){return buildPersonPage(p.name)}).join('');window.print()}
@@ -563,7 +655,7 @@ function exportCSV(){
   var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download=(eventName||'lista')+'.csv';a.click();
 }
 
-// ════ UI CONTROLS ════
+// ════ UI ════
 function switchTab(name,btn){
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});btn.classList.add('active');
   document.getElementById('tab-lists').style.display=name==='lists'?'block':'none';
@@ -572,12 +664,12 @@ function switchTab(name,btn){
 }
 function setFilter(f,btn){
   currentFilter=f;
-  document.querySelectorAll('#tab-lists .filter-bar .pill').forEach(function(b){if(['Wszyscy','Potwierdzeni','Obecni','Nieobecni'].indexOf(b.textContent.trim())>=0)b.classList.remove('on')});
+  document.querySelectorAll('#tab-lists .filter-bar .pill').forEach(function(b){b.classList.remove('on')});
   btn.classList.add('on');renderListTab();
 }
 function setBadgeFilter(f,btn){
   badgeFilter=f;
-  document.querySelectorAll('#tab-badge .filter-bar .pill').forEach(function(b){if(['Wszyscy','Potwierdzeni','Obecni','Nieobecni'].indexOf(b.textContent.trim())>=0)b.classList.remove('on')});
+  document.querySelectorAll('#tab-badge .filter-bar .pill').forEach(function(b){b.classList.remove('on')});
   btn.classList.add('on');renderBadgeView();
 }
 function noun(n,s1,s2,s5){if(n===1)return s1;if(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))return s2;return s5}
