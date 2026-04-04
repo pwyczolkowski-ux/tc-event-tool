@@ -241,7 +241,7 @@ body.pb #pax{display:none!important}
     <div id="tab-x1" style="display:none">
       <div class="np" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <span style="font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:.1em;color:#555">Zestawienia 1×1</span>
-        <button class="btn btn-o btn-sm" onclick="genAllX1ZIP()">Pobierz ZIP (DOCX + PDF)</button>
+        <button class="btn btn-o btn-sm" onclick="genAllX1ZIP()">Pobierz ZIP (DOCX)</button>
       </div>
       <div class="xl">
         <div class="xs">
@@ -964,67 +964,74 @@ async function genX1DOCX(name){
   }catch(e){console.error(e);alert('Błąd DOCX: '+e.message);}
 }
 
-// ══ 1x1 PDF ══
-function genX1PDF(name){
-  var person=x1map[name];if(!person){alert('Brak danych.');return;}
-  var jsPDF=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF;
-  if(!jsPDF){alert('Biblioteka jsPDF nie załadowana.');return;}
-  try{
-    var doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
-    if(!doc.autoTable){alert('Brak wtyczki autoTable.');return;}
+// ══ 1x1 PDF — via HTML print window ══
+function buildX1PrintHTML(name){
+  var person=x1map[name];if(!person)return'';
+  var inf=byName[name.toLowerCase()];
+  var mtgs=person.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');});
+  var evDate=evMeta?evMeta.split('\u00b7')[0].trim():'';
+  var dateLabel=(evDate?evDate+' \u2014 ':'')+evName;
+  var nameStr=name+(inf&&inf.firma?' ('+inf.firma+')':'');
+  var dataRows=mtgs.map(function(m,i){
+    var pi=byName[m.partner.toLowerCase()];
+    var bg=(i%2===0)?'#fff':'#f8f8f8';
+    return '<tr style="background:'+bg+'">'
+      +'<td style="width:40px;text-align:center">'+( i+1)+'</td>'
+      +'<td>'+esc(m.partner)+'</td>'
+      +'<td>'+esc(pi?pi.firma:'')+'</td>'
+      +'<td>'+esc(pi?pi.branza:'')+'</td>'
+      +(i===0?'<td rowspan="'+mtgs.length+'" style="text-align:center;vertical-align:middle;font-size:11px">'+esc(dateLabel)+'</td>':'')
+      +'</tr>';
+  }).join('');
 
-    var Y=[255,213,3],DA=[64,64,64],WH=[255,255,255],LG=[248,248,248];
-    var margin=15,pw=297,ph=210;
-    var inf=byName[name.toLowerCase()];
-    var mtgs=person.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');});
-    var evDate=evMeta?evMeta.split('\u00b7')[0].trim():'';var dateLabel=(evDate?evDate+' \u2014 ':'')+evName;
-
-    // Build rows with merged date cell
-    var body=[];
-    mtgs.forEach(function(m,i){
-      var pi=byName[m.partner.toLowerCase()];
-      var row=[i+1,m.partner,pi?pi.firma:'',pi?pi.branza:''];
-      if(i===0){row.push({content:dateLabel,rowSpan:mtgs.length,styles:{valign:'middle',halign:'center',fontStyle:'normal'}});}
-      body.push(row);
-    });
-
-    var logoB64=CC_LOGO,wlcB64=WLC_LOGO;
-
-    doc.autoTable({
-      head:[['Lp.','Osoba','Firma','Branża','Data']],
-      body:body,
-      startY:52,
-      margin:{left:margin,right:margin},
-      tableWidth:pw-2*margin,
-      columnStyles:{0:{cellWidth:12},1:{cellWidth:52},2:{cellWidth:60},3:{cellWidth:90},4:{cellWidth:53}},
-      styles:{font:'helvetica',fontSize:9,textColor:DA,cellPadding:2.5,valign:'middle',halign:'center',
-              lineColor:[200,200,200],lineWidth:0.2},
-      headStyles:{fillColor:Y,textColor:DA,fontStyle:'bold',fontSize:9},
-      alternateRowStyles:{fillColor:LG},
-      didDrawPage:function(){
-        try{doc.addImage(logoB64,'PNG',margin,6,48,12);}catch(e){}
-        doc.setDrawColor(255,213,3);doc.setLineWidth(0.8);
-        doc.line(margin,21,pw-margin,21);
-        // Name
-        doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(40,40,40);
-        doc.text(name+(inf&&inf.firma?' ('+inf.firma+')':''),pw/2,33,{align:'center'});
-        doc.setFontSize(12);
-        doc.text('Spotkania 1 na 1',pw/2,42,{align:'center'});
-        doc.setFont('helvetica','normal');
-        // WLC footer
-        try{doc.addImage(wlcB64,'PNG',margin,ph-14,55,6);}catch(e){}
-      }
-    });
-
-    doc.save(x1FileName(name)+'.pdf');
-  }catch(e){console.error(e);alert('Błąd PDF: '+e.message);}
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+    +'<style>'
+    +'*{margin:0;padding:0;box-sizing:border-box}'
+    +'body{font-family:Calibri,Arial,sans-serif;font-size:12px;color:#404040;padding:0}'
+    +'@page{size:A4 landscape;margin:15mm 15mm 20mm 15mm}'
+    +'@media print{body{padding:0}}'
+    +'.header{display:flex;align-items:center;margin-bottom:8px}'
+    +'.logo{height:40px;margin-right:20px}'
+    +'.yline{height:2px;background:#FFD503;margin-bottom:24px}'
+    +'.name{text-align:center;font-size:16pt;font-weight:700;margin-bottom:8px}'
+    +'.sub{text-align:center;font-size:13pt;font-weight:700;margin-bottom:16px}'
+    +'table{width:100%;border-collapse:collapse;border:1.5px solid #404040}'
+    +'th,td{border:1px solid #ccc;padding:5px 8px;text-align:center}'
+    +'.thd{background:#FFD503;color:#404040;font-weight:700;border:1px solid #999}'
+    +'.thdm{background:#FFD503;color:#404040;font-weight:700;text-align:center;font-size:12pt;border:1px solid #999}'
+    +'.wlc{position:fixed;bottom:10mm;left:15mm}'
+    +'</style></head><body>'
+    +'<div class="header"><img class="logo" src="'+CC_LOGO+'"></div>'
+    +'<div class="yline"></div>'
+    +'<div class="name">'+esc(nameStr)+'</div>'
+    +'<div class="sub">Spotkania 1 na 1</div>'
+    +'<table>'
+    +'<tr><th colspan="5" class="thdm">Spotkania 1 na 1</th></tr>'
+    +'<tr>'
+    +'<th class="thd" style="width:40px">Lp.</th>'
+    +'<th class="thd" style="width:180px">Osoba</th>'
+    +'<th class="thd" style="width:200px">Firma</th>'
+    +'<th class="thd">Bran\u017ca</th>'
+    +'<th class="thd" style="width:180px">Data</th>'
+    +'</tr>'
+    +dataRows
+    +'</table>'
+    +'<img src="'+WLC_LOGO+'" class="wlc" style="height:20px">'
+    +'</body></html>';
 }
 
-// ══ ZIP ALL 1x1 ══
+function genX1PDF(name){
+  var person=x1map[name];if(!person){alert('Brak danych.');return;}
+  var content=buildX1PrintHTML(name);
+  var w=window.open('','_blank','width=1100,height=750');
+  if(!w){alert('Zezwól na okna pop-up dla tej strony.');return;}
+  w.document.open();w.document.write(content);w.document.close();
+  w.focus();
+  setTimeout(function(){w.print();},800);
+}
+
 async function genAllX1ZIP(){
   if(!x1list.length){alert('Brak danych spotkań.');return;}
-  var jsPDF=(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF;
-  var hasPDF=!!(jsPDF);
   var zip=new JSZip();
   var total=x1list.length,done=0;
   var btn=document.querySelector('[onclick="genAllX1ZIP()"]');
@@ -1033,8 +1040,6 @@ async function genAllX1ZIP(){
   for(var i=0;i<x1list.length;i++){
     var name=x1list[i].name;
     var fname=x1FileName(name);
-
-    // DOCX
     try{
       if(!lhBuf){var r=await fetch('./CC%20Papier%20firmowy%202025%20(3).docx');if(r.ok)lhBuf=await r.arrayBuffer();}
       if(lhBuf){
@@ -1044,7 +1049,13 @@ async function genAllX1ZIP(){
         var inf=byName[name.toLowerCase()];
         var nameStr=name+(inf&&inf.firma?' ('+inf.firma+')':'');
         function wa2(n,v){return' w:'+n+'="'+v+'"';}
-        function para2(txt,sz,bold){return'<w:p><w:pPr><w:jc w:val="center"/><w:spacing'+wa2('before','120')+wa2('after','80')+'/></w:pPr><w:r><w:rPr>'+(bold?'<w:b/>':'')+'<w:rFonts'+wa2('ascii','Calibri')+wa2('hAnsi','Calibri')+'/>'+('<w:sz'+wa2('val',sz)+'/><w:szCs'+wa2('val',sz)+'/>').replace(/\+"/g,'"')+'</w:rPr><w:t xml:space="preserve">'+xesc(txt)+'</w:t></w:r></w:p>';}
+        function para2(txt,sz,bold){
+          return'<w:p><w:pPr><w:jc w:val="center"/><w:spacing'+wa2('before','120')+wa2('after','80')+'/></w:pPr>'+
+            '<w:r><w:rPr>'+(bold?'<w:b/>':'')+
+            '<w:rFonts'+wa2('ascii','Calibri')+wa2('hAnsi','Calibri')+'/>'+
+            '<w:sz'+wa2('val',sz)+'/><w:szCs'+wa2('val',sz)+'/></w:rPr>'+
+            '<w:t xml:space="preserve">'+xesc(txt)+'</w:t></w:r></w:p>';
+        }
         var content=para2(nameStr,28,true)+para2('Spotkania 1 na 1',24,true)+buildX1Table(name)+'<w:p/>';
         d=d.replace('<w:sectPr>',content+'<w:sectPr>');
         zp.file('word/document.xml',d);
@@ -1052,62 +1063,13 @@ async function genAllX1ZIP(){
         zip.file(fname+'.docx',outBuf);
       }
     }catch(e){console.warn('DOCX error for '+name,e);}
-
-    // PDF
-    if(hasPDF){
-      try{
-        var pdfBuf=genX1PDFBuffer(name,jsPDF);
-        if(pdfBuf)zip.file(fname+'.pdf',pdfBuf);
-      }catch(e){console.warn('PDF error for '+name,e);}
-    }
-
     done++;
     if(btn)btn.textContent='Generuję '+done+'/'+total+'...';
   }
 
   var blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
   dl(blob,'1x1_'+evName.replace(/[^a-zA-Z0-9_ -]/g,'_')+'.zip');
-  if(btn){btn.disabled=false;btn.textContent='Pobierz ZIP';}
-}
-
-// Generate PDF as ArrayBuffer (for ZIP)
-function genX1PDFBuffer(name,jsPDF){
-  var person=x1map[name];if(!person)return null;
-  jsPDF=jsPDF||(window.jspdf&&window.jspdf.jsPDF)||window.jsPDF;
-  if(!jsPDF)return null;
-  var doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
-  if(!doc.autoTable)return null;
-  var Y=[255,213,3],DA=[64,64,64],WH=[255,255,255],LG=[248,248,248];
-  var margin=15,pw=297,ph=210;
-  var inf=byName[name.toLowerCase()];
-  var mtgs=person.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');});
-  var evDate=evMeta?evMeta.split('\u00b7')[0].trim():'';var dateLabel=(evDate?evDate+' \u2014 ':'')+evName;
-  var body=[];
-  mtgs.forEach(function(m,i){
-    var pi=byName[m.partner.toLowerCase()];
-    var row=[i+1,m.partner,pi?pi.firma:'',pi?pi.branza:''];
-    if(i===0)row.push({content:dateLabel,rowSpan:mtgs.length,styles:{valign:'middle',halign:'center'}});
-    body.push(row);
-  });
-  var logoB64=CC_LOGO,wlcB64=WLC_LOGO;
-  doc.autoTable({
-    head:[['Lp.','Osoba','Firma','Branża','Data']],body:body,startY:52,
-    margin:{left:margin,right:margin},tableWidth:pw-2*margin,
-    columnStyles:{0:{cellWidth:12},1:{cellWidth:52},2:{cellWidth:60},3:{cellWidth:90},4:{cellWidth:53}},
-    styles:{font:'helvetica',fontSize:9,textColor:DA,cellPadding:2.5,valign:'middle',halign:'center',lineColor:[200,200,200],lineWidth:0.2},
-    headStyles:{fillColor:Y,textColor:DA,fontStyle:'bold',fontSize:9},
-    alternateRowStyles:{fillColor:LG},
-    didDrawPage:function(){
-      try{doc.addImage(logoB64,'PNG',margin,6,48,12);}catch(e){}
-      doc.setDrawColor(255,213,3);doc.setLineWidth(0.8);doc.line(margin,21,pw-margin,21);
-      doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(40,40,40);
-      doc.text(name+(inf&&inf.firma?' ('+inf.firma+')':''),pw/2,33,{align:'center'});
-      doc.setFontSize(12);doc.text('Spotkania 1 na 1',pw/2,42,{align:'center'});
-      doc.setFont('helvetica','normal');
-      try{doc.addImage(wlcB64,'PNG',margin,ph-14,55,6);}catch(e){}
-    }
-  });
-  return doc.output('arraybuffer');
+  if(btn){btn.disabled=false;btn.textContent='Pobierz ZIP (DOCX)';}
 }
 
 function dl(blob,name){var url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);}
