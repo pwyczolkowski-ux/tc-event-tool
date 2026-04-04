@@ -66,6 +66,9 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--g1)}
 .td-lp{font-family:monospace;font-size:11px;color:var(--g3);width:40px}
 .td-nm{font-weight:400;color:var(--navy)}.td-ns{font-size:11px;font-weight:300;color:var(--g3);margin-top:2px}
 .td-mono{font-family:monospace;font-size:11px;color:var(--g4)}
+.td-ellipsis{max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.td-skala{max-width:120px}
+@media(max-width:768px){.td-ellipsis{max-width:100px}.td-skala{display:none}}
 .type-tag{display:inline-block;padding:2px 8px;font-size:10px;font-weight:400;letter-spacing:.04em;text-transform:uppercase}
 .tag-cc{background:#E8EAF6;color:#3949AB}.tag-ccp{background:#FCE4EC;color:#B71C1C}
 .tag-bni{background:#E8F5E9;color:#1B5E20}.tag-gosc{color:var(--red);border:1px solid var(--red)}
@@ -581,746 +584,78 @@ function typeTag(p){
 }
 
 // ════ LIST TAB ════
-function renderListTab(){
-  var list=filterByStatus(currentFilter),el=document.getElementById('list-container');
-  var rows=list.map(function(p,i){var t=typeTag(p);return'<tr><td class="td-lp">'+(i+1)+'</td><td><div class="td-nm">'+esc(p.imie+' '+p.nazwisko)+'</div>'+(p.rola?'<div class="td-ns">'+esc(p.rola)+'</div>':'')+'</td><td>'+esc(p.firma)+'</td><td class="td-mono" style="max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(p.branza)+'</td><td class="td-mono" style="max-width:120px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(p.skala)+'</td><td><span class="type-tag '+t.cls+'">'+t.label+'</span></td><td class="td-mono" title="'+esc(directorMap[p.dyrektor]||p.dyrektor)+'" style="cursor:default">'+esc(p.dyrektor)+'</td></tr>'}).join('');
-  el.innerHTML='<div class="tbl-wrap"><div class="tbl-toolbar no-print"><span class="tbl-count">Wynik: <strong>'+list.length+'</strong> '+noun(list.length,'osoba','osoby','osób')+'</span><div class="tbl-actions"><button class="btn btn-outline btn-sm" onclick="exportCSV()">Pobierz CSV</button><button class="btn btn-navy btn-sm" onclick="window.print()">Drukuj</button></div></div><table><thead><tr><th>#</th><th>Imię i nazwisko</th><th>Firma</th><th>Branża</th><th>Skala</th><th>Typ</th><th>Dyrektor</th></tr></thead><tbody>'+(rows||'<tr><td colspan="7" style="text-align:center;padding:30px;color:#aaa">Brak wyników</td></tr>')+'</tbody></table></div>';
+// ════ SORT STATE ════
+var sortCol=null,sortDir=1; // dir: 1=asc, -1=desc
+
+function sortList(list){
+  if(!sortCol)return list;
+  return list.slice().sort(function(a,b){
+    var va='',vb='';
+    if(sortCol==='name'){va=a.nazwisko+a.imie;vb=b.nazwisko+b.imie;}
+    else if(sortCol==='firma'){va=a.firma;vb=b.firma;}
+    else if(sortCol==='branza'){va=a.branza;vb=b.branza;}
+    else if(sortCol==='skala'){va=a.skala;vb=b.skala;}
+    else if(sortCol==='typ'){va=typeTag(a).label;vb=typeTag(b).label;}
+    else if(sortCol==='dyr'){va=a.dyrektor;vb=b.dyrektor;}
+    return sortDir*(va.localeCompare(vb,'pl'));
+  });
 }
 
-// ════ BADGE TAB ════
-function renderBadgeView(){
-  var list=filterByStatus(badgeFilter),el=document.getElementById('badge-container');
-  var canGen=templateReady&&Object.keys(typeSlideMap).length>0;
-  var genBtn=canGen
-    ?'<button class="btn btn-red btn-sm" onclick="generateBadgePPTX()"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Generuj PPTX ('+list.length+')</button>'
-    :'<button class="btn btn-outline btn-sm" disabled>Generuj PPTX</button>';
+function setSort(col){
+  if(sortCol===col){sortDir*=-1;}else{sortCol=col;sortDir=1;}
+  renderListTab();
+}
 
-  var cards=list.map(function(p){
-    var tpl=getTemplateForPerson(p);
-    var ac=tpl?tpl.accentColor:'#FFD503';
-    var tc=tpl?tpl.textColor:'#121635';
-    var logo=tpl?tpl.logoText:'CC';
-    return'<div class="badge-card" onclick="openModal(\''+escAttr(p.pelne)+'\')">'+badgeCard(p,ac,tc,logo)+'</div>';
+function sortArrow(col){
+  if(sortCol!==col)return'<span style="opacity:.25;font-size:10px;margin-left:3px">⇅</span>';
+  return sortDir===1
+    ?'<span style="font-size:10px;margin-left:3px;color:var(--red)">▲</span>'
+    :'<span style="font-size:10px;margin-left:3px;color:var(--red)">▼</span>';
+}
+
+function renderListTab(){
+  var raw=filterByStatus(currentFilter);
+  var list=sortList(raw);
+  var el=document.getElementById('list-container');
+  var thStyle='cursor:pointer;user-select:none;white-space:nowrap;';
+  thStyle+='padding:9px 16px;text-align:left;font-size:10px;font-weight:400;text-transform:uppercase;letter-spacing:.08em;color:var(--g4);border-bottom:1px solid var(--g2);background:var(--g1);';
+
+  var ths=[
+    '<th style="'+thStyle+'width:40px">#</th>',
+    '<th style="'+thStyle+'" onclick="setSort(\'name\')">Imię i nazwisko'+sortArrow('name')+'</th>',
+    '<th style="'+thStyle+'" onclick="setSort(\'firma\')">Firma'+sortArrow('firma')+'</th>',
+    '<th style="'+thStyle+'" onclick="setSort(\'branza\')">Branża'+sortArrow('branza')+'</th>',
+    '<th style="'+thStyle+'" onclick="setSort(\'skala\')">Skala'+sortArrow('skala')+'</th>',
+    '<th style="'+thStyle+'" onclick="setSort(\'typ\')">Typ'+sortArrow('typ')+'</th>',
+    '<th style="'+thStyle+'" onclick="setSort(\'dyr\')">Dyrektor'+sortArrow('dyr')+'</th>',
+  ].join('');
+
+  var rows=list.map(function(p,i){
+    var t=typeTag(p);
+    return'<tr>'+
+      '<td class="td-lp">'+(i+1)+'</td>'+
+      '<td>'+
+        '<div class="td-nm">'+esc(p.imie+' '+p.nazwisko)+'</div>'+
+        (p.rola?'<div class="td-ns">'+esc(p.rola)+'</div>':'')+
+      '</td>'+
+      '<td>'+esc(p.firma)+'</td>'+
+      '<td class="td-mono td-ellipsis">'+esc(p.branza)+'</td>'+
+      '<td class="td-mono td-ellipsis td-skala">'+esc(p.skala)+'</td>'+
+      '<td><span class="type-tag '+t.cls+'">'+t.label+'</span></td>'+
+      '<td class="td-mono" title="'+esc(directorMap[p.dyrektor]||p.dyrektor)+'" style="cursor:default">'+esc(p.dyrektor)+'</td>'+
+    '</tr>';
   }).join('');
 
-  el.innerHTML='<div class="tbl-wrap"><div class="tbl-toolbar no-print"><span class="tbl-count">Badge: <strong>'+list.length+'</strong> '+noun(list.length,'osoba','osoby','osób')+'</span><div class="tbl-actions">'+genBtn+'<button class="btn btn-navy btn-sm" onclick="window.print()">Drukuj</button></div></div><div class="badge-grid">'+cards+'</div></div>';
+  el.innerHTML=
+    '<div class="tbl-wrap">'+
+      '<div class="tbl-toolbar no-print">'+
+        '<span class="tbl-count">Wynik: <strong>'+list.length+'</strong> '+noun(list.length,'osoba','osoby','osób')+'</span>'+
+      '</div>'+
+      '<div style="overflow-x:auto">'+
+        '<table>'+
+          '<thead><tr>'+ths+'</tr></thead>'+
+          '<tbody>'+(rows||'<tr><td colspan="7" style="text-align:center;padding:30px;color:#aaa;font-weight:300">Brak wyników</td></tr>')+'</tbody>'+
+        '</table>'+
+      '</div>'+
+    '</div>';
 }
-
-function badgeCard(p,accentBg,accentText,logo){
-  return'<div class="bp-wrap" style="border-color:'+accentBg+'">'+
-    '<div class="bp-body"><div class="bp-dot" style="background:'+accentBg+'"></div>'+
-    '<div class="bp-logo-row" style="color:'+accentBg+'">'+esc(logo)+'</div>'+
-    '<div class="bp-name">'+esc(p.imie)+'<br>'+esc(p.nazwisko)+'</div>'+
-    '<div class="bp-firma">'+esc(p.firma)+'</div></div>'+
-    '<div class="bp-footer" style="background:'+accentBg+'">'+
-    '<span class="bp-wlc" style="color:'+accentText+'">Where Leaders Connect™</span>'+
-    '<span class="bp-group" style="color:'+accentText+'">'+esc(p.grupa)+'</span>'+
-    '</div></div>';
-}
-
-// ════ MODAL ════
-function openModal(pelne){
-  var p=lookupByName[pelne.toLowerCase()];if(!p)return;
-  var tpl=getTemplateForPerson(p);
-  var ac=tpl?tpl.accentColor:'#FFD503';
-  var tc=tpl?tpl.textColor:'#121635';
-  var logo=tpl?tpl.logoText:'CC';
-  document.getElementById('bm-content').innerHTML=badgeModal(p,ac,tc,logo);
-  document.getElementById('badge-modal').classList.add('open');
-}
-function closeBadgeModal(){document.getElementById('badge-modal').classList.remove('open')}
-function printSingleBadge(){document.body.classList.add('print-badge');window.print();document.body.classList.remove('print-badge')}
-document.addEventListener('keydown',function(e){if(e.key==='Escape')closeBadgeModal()});
-
-function badgeModal(p,accentBg,accentText,logo){
-  return'<div class="bm-badge" style="border-color:'+accentBg+'">'+
-    '<div class="bm-badge-body"><div class="bm-badge-dot" style="background:'+accentBg+'"></div>'+
-    '<div class="bm-badge-logo" style="color:'+accentBg+'">'+esc(logo)+'</div>'+
-    '<div class="bm-badge-name">'+esc(p.imie)+' '+esc(p.nazwisko)+'</div>'+
-    '<div class="bm-badge-div"></div>'+
-    '<div class="bm-badge-firma">'+esc(p.firma)+'</div>'+
-    '<div class="bm-badge-branza">'+esc(p.branza)+'</div></div>'+
-    '<div class="bm-badge-footer" style="background:'+accentBg+'">'+
-    '<span class="bm-badge-wlc" style="color:'+accentText+'">Where Leaders Connect™</span>'+
-    '<span class="bm-badge-group" style="color:'+accentText+'">'+esc(p.grupa)+'</span>'+
-    '</div></div>';
-}
-
-// ════ GENERATE PPTX ════
-async function generateBadgePPTX(){
-  var list=filterByStatus(badgeFilter);
-  if(!list.length||!templateBuf){alert('Brak danych lub szablonu.');return}
-  try{
-    var outZip=await JSZip.loadAsync(templateBuf);
-    var presXml=await outZip.file('ppt/presentation.xml').async('string');
-    var presRelsXml=await outZip.file('ppt/_rels/presentation.xml.rels').async('string');
-    var ctXml=await outZip.file('[Content_Types].xml').async('string');
-
-    // Znajdź rId i sldId slajdu 1 w presXml/rels
-    var rId1m=presRelsXml.match(/Id="(rId\d+)"[^>]*slides\/slide1\.xml/);
-    var rId1=rId1m?rId1m[1]:'rId2';
-    var sldId1m=presXml.match(/<p:sldId id="(\d+)"/);
-    var sldId1=sldId1m?parseInt(sldId1m[1]):295;
-
-    // Oblicz następne wolne numery
-    var allRIds=[...presRelsXml.matchAll(/Id="rId(\d+)"/g)].map(function(m){return parseInt(m[1])});
-    var nextRIdN=Math.max.apply(null,allRIds.concat([100]))+1;
-    var allSldIds=[...presXml.matchAll(/<p:sldId id="(\d+)"/g)].map(function(m){return parseInt(m[1])});
-    var nextSldId=Math.max.apply(null,allSldIds.concat([400]))+1;
-
-    // Buduj nowy sldIdLst i rels/ct
-    var newSldIds='',newPresRels='',newCt='';
-
-    for(var i=0;i<list.length;i++){
-      var p=list[i];
-      var tpl=getTemplateForPerson(p);
-      if(!tpl){alert('Brak szablonu dla osoby '+p.pelne);return}
-      var n=i+1;
-      var filledXml=fillBadge(tpl.xml,p);
-      outZip.file('ppt/slides/slide'+n+'.xml',filledXml);
-      outZip.file('ppt/slides/_rels/slide'+n+'.xml.rels',tpl.rels);
-
-      var rId,sldId;
-      if(i===0){rId=rId1;sldId=sldId1;}
-      else{rId='rId'+nextRIdN++;sldId=nextSldId++;
-        newPresRels+='<Relationship Id="'+rId+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide'+n+'.xml"/>\n  ';
-        newCt+='<Override PartName="/ppt/slides/slide'+n+'.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>\n  ';
-      }
-      newSldIds+='<p:sldId id="'+sldId+'" r:id="'+rId+'"/>\n    ';
-    }
-
-    presXml=presXml.replace(/<p:sldIdLst>[\s\S]*?<\/p:sldIdLst>/,'<p:sldIdLst>\n    '+newSldIds+'</p:sldIdLst>');
-    presRelsXml=presRelsXml.replace('</Relationships>','  '+newPresRels+'</Relationships>');
-    ctXml=ctXml.replace('</Types>','  '+newCt+'</Types>');
-
-    outZip.file('ppt/presentation.xml',presXml);
-    outZip.file('ppt/_rels/presentation.xml.rels',presRelsXml);
-    outZip.file('[Content_Types].xml',ctXml);
-
-    var blob=await outZip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
-    var url=URL.createObjectURL(blob);
-    var a=document.createElement('a');a.href=url;
-    a.download='Badge_'+(eventName||'CC').replace(/[^a-zA-Z0-9_\- ]/g,'_')+'.pptx';
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }catch(err){console.error(err);showError('Błąd generowania PPTX: '+err.message)}
-}
-
-function fillBadge(xml,p){
-  return xml.replace(/\{\{imię\}\}/g,escXml(p.imie))
-    .replace(/\{\{nazwisko\}\}/g,escXml(p.nazwisko))
-    .replace(/\{\{firma\}\}/g,escXml(p.firma))
-    .replace(/\{\{branża\}\}/g,escXml(p.branza))
-    .replace(/\{\{grupa\}\}/g,escXml(p.grupa));
-}
-function escXml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;')}
-
-// ════ 1x1 ════
-function renderX1Sidebar(f){
-  f=f||'';var el=document.getElementById('x1-sidebar-list');
-  var vis=x1List.filter(function(p){return!f||p.name.toLowerCase().indexOf(f.toLowerCase())>=0});
-  el.innerHTML=vis.map(function(p){var info=lookupByName[p.name.toLowerCase()];return'<div class="x1-item'+(selectedPerson===p.name?' active':'')+'" onclick="selectPerson(\''+escAttr(p.name)+'\')">'+'<div class="x1-in"><span>'+esc(p.name)+'</span><span class="x1-cnt">'+p.meetings.length+'</span></div><div class="x1-if">'+esc(info?info.firma:'')+'</div></div>'}).join('')||'<div style="padding:16px;font-size:12px;color:#aaa">Brak wyników</div>';
-}
-function filterX1(v){renderX1Sidebar(v)}
-function selectPerson(name){selectedPerson=name;renderX1Sidebar(document.getElementById('x1-search').value);renderX1Detail(name)}
-function renderX1Detail(name){
-  var person=x1Map[name],info=lookupByName[name.toLowerCase()],el=document.getElementById('x1-detail');
-  if(!person)return;
-  var totalMin=person.meetings.reduce(function(s,m){return s+(parseInt(m.dur)||0)},0);
-  var rows=person.meetings.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'')}).map(function(m,i){var pi=lookupByName[m.partner.toLowerCase()];var ts=m.start?(m.start+(m.end?'–'+m.end:'')):'—';return'<div class="x1-mr"><div class="x1-mt">'+esc(ts)+'</div><div><div class="x1-mn">'+(i+1)+'. '+esc(m.partner)+'</div><div class="x1-md">'+esc(pi?[pi.firma,pi.branza].filter(Boolean).join(' · '):'')+'</div></div><div class="x1-dur">'+esc(m.dur?m.dur+' min':'—')+'</div></div>'}).join('');
-  el.innerHTML='<div class="x1-dh"><div class="x1-dhn">'+esc(name)+'</div><div class="x1-dhf">'+esc(info?info.firma||'':'')+'</div><div class="x1-dhs"><span>'+person.meetings.length+'</span> spotkań'+(totalMin?' &nbsp;·&nbsp; <span>'+totalMin+'</span> min':'')+'</div></div><div class="x1-meetings">'+rows+'</div><div class="x1-footer no-print"><button class="btn btn-outline btn-sm" onclick="printOnePerson(\''+escAttr(name)+'\')">Drukuj zestawienie</button></div>';
-}
-function buildPersonPage(name){
-  var person=x1Map[name],info=lookupByName[name.toLowerCase()];if(!person)return'';
-  var totalMin=person.meetings.reduce(function(s,m){return s+(parseInt(m.dur)||0)},0);
-  var rows=person.meetings.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'')}).map(function(m,i){var pi=lookupByName[m.partner.toLowerCase()];return'<div class="x1-pm"><div class="x1-pm-time">'+esc(m.start||'—')+'</div><div><div class="x1-pm-name">'+(i+1)+'. '+esc(m.partner)+'</div><div class="x1-pm-info">'+esc(pi?[pi.firma,pi.branza].filter(Boolean).join(' · '):'')+'</div></div><div class="x1-pm-dur">'+esc(m.dur?m.dur+' min':'')+'</div></div>'}).join('');
-  return'<div class="x1-print-page"><div class="x1-ph"><div class="x1-ph-name">'+esc(name)+(info&&info.firma?' · '+esc(info.firma):'')+'</div><div class="x1-ph-event">'+esc(eventName)+' · '+esc(eventMeta)+'</div></div>'+rows+(totalMin?'<div class="x1-pf">Łącznie: '+totalMin+' minut</div>':'')+'</div>';
-}
-function printOnePerson(name){document.getElementById('print-all-x1').innerHTML=buildPersonPage(name);window.print()}
-function printAll1x1(){document.getElementById('print-all-x1').innerHTML=x1List.map(function(p){return buildPersonPage(p.name)}).join('');window.print()}
-
-// ════ CSV ════
-function exportCSV(){
-  var list=filterByStatus(currentFilter);
-  var hdr=['Lp.','Imię','Nazwisko','Firma','Branża','Skala','Dyrektor','Typ','E-mail'];
-  var rows=list.map(function(p,i){return[i+1,p.imie,p.nazwisko,p.firma,p.branza,p.skala,p.dyrektor,typeTag(p).label,p.email]});
-  var csv=[hdr].concat(rows).map(function(r){return r.map(function(v){return'"'+String(v||'').replace(/"/g,'""')+'"'}).join(',')}).join('\r\n');
-  var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download=(eventName||'lista')+'.csv';a.click();
-}
-
-// ════ UI ════
-function switchTab(name,btn){
-  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});btn.classList.add('active');
-  ['lists','badge','x1','listy'].forEach(function(n){document.getElementById('tab-'+n).style.display=n===name?'block':'none'});
-}
-function setFilter(f,btn){currentFilter=f;document.querySelectorAll('#tab-lists .filter-bar .pill').forEach(function(b){b.classList.remove('on')});btn.classList.add('on');renderListTab();}
-function setBadgeFilter(f,btn){badgeFilter=f;document.querySelectorAll('#tab-badge .filter-bar .pill').forEach(function(b){b.classList.remove('on')});btn.classList.add('on');renderBadgeView();}
-function noun(n,s1,s2,s5){if(n===1)return s1;if(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))return s2;return s5}
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-function escAttr(s){return String(s||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;')}
-
-// ════ GENERATE MAILING LIST XLSX ════
-
-var LCOLORS={
-  navy:'FF121635', red:'FFDC143C', yellow:'FFFFD503',
-  white:'FFFFFFFF', lightGray:'FFF5F5F5', midGray:'FFE8E8E8', textGray:'FF555555'
-};
-
-function groupSortKey(grupaStr){
-  var g=grupaStr||'';
-  if(g.startsWith('CC+1'))return'00';if(g.startsWith('CC+2'))return'01';
-  if(g.startsWith('CC+'))return'02';if(g.startsWith('BNI'))return'ZZ';
-  var m=g.match(/CC(\d+)/);return m?('10'+m[1].padStart(3,'0')):('50'+g);
-}
-
-function sortedList(arr){
-  return arr.slice().sort(function(a,b){
-    var ga=groupSortKey(a.grupa),gb=groupSortKey(b.grupa);
-    if(ga!==gb) return ga.localeCompare(gb);
-    return a.nazwisko.localeCompare(b.nazwisko,'pl');
-  });
-}
-
-function getListData(type){
-  var all=participants;
-  var wlasni=[], inni=[], goscie=[], partnerzy=[], obserwatorzy=[];
-
-  all.forEach(function(p){
-    var potw=p.potwierdzony, obec=p.obecny;
-    if(type==='tydzien'||type==='dzien'){
-      if(p.wlasna) wlasni.push(p);
-      else if(p.innaGrupa&&potw) inni.push(p);
-      else if(p.isGosc&&potw) goscie.push(p);
-      else if(p.partner&&potw) partnerzy.push(p);
-      else if(p.obserwator&&potw) obserwatorzy.push(p);
-    } else {
-      if(!obec) return;
-      if(p.wlasna) wlasni.push(p);
-      else if(p.innaGrupa) inni.push(p);
-      else if(p.isGosc) goscie.push(p);
-      else if(p.partner) partnerzy.push(p);
-      else if(p.obserwator) obserwatorzy.push(p);
-    }
-  });
-
-  return {
-    wlasni: sortedList(wlasni),
-    inni: sortedList(inni),
-    goscie: sortedList(goscie),
-    partnerzy: sortedList(partnerzy),
-    obserwatorzy: sortedList(obserwatorzy)
-  };
-}
-
-async function generateList(type){
-  if(!participants.length){alert('Najpierw wczytaj plik eventowy.');return}
-  if(typeof ExcelJS==='undefined'){alert('Biblioteka ExcelJS nie załadowana.');return}
-
-  var data=getListData(type);
-  var withEmail=(type==='po_czlonkowie');
-  var cols=withEmail
-    ?['Imię','Nazwisko','Firma','Branża','Grupa','E-mail']
-    :['Imię','Nazwisko','Firma','Branża','Grupa'];
-  var numCols=cols.length;
-
-  // Nazwa pliku
-  var titles={
-    tydzien:'Lista Członków i potwierdzonych Gości',
-    dzien:'Lista Członków i potwierdzonych Gości',
-    po_czlonkowie:'Lista Uczestników – Członkowie',
-    po_goscie:'Lista Uczestników – Goście'
-  };
-  var suffixes={tydzien:'',dzien:'',po_czlonkowie:' – Członkowie',po_goscie:' – Goście'};
-  var listTitle=titles[type];
-  var eventShort=eventName.replace(/^Spotkanie Grupy /,'Spotkanie ').replace(/^Spotkanie /,'Spotkanie ');
-  var fileName=listTitle+' '+eventShort;
-
-  var wb=new ExcelJS.Workbook();
-  wb.creator='the company.';
-  wb.created=new Date();
-  var ws=wb.addWorksheet('Lista');
-
-  var lastCol=numCols;
-
-  // Helper: styl komórki
-  function styleCell(cell,opts){
-    if(opts.bgColor) cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:opts.bgColor}};
-    cell.font={name:'Calibri',size:opts.size||10,bold:!!opts.bold,color:{argb:opts.color||LCOLORS.navy}};
-    cell.alignment={horizontal:opts.align||'center',vertical:'middle',wrapText:!!opts.wrap};
-    if(opts.border){
-      cell.border={bottom:{style:'thin',color:{argb:LCOLORS.midGray}}};
-    }
-  }
-
-  // ROW 1 — Logo pasek (żółty)
-  ws.mergeCells(1,1,1,lastCol);
-  var r1=ws.getCell(1,1);
-  r1.value='the company.   ·   Corporate Connections';
-  styleCell(r1,{bgColor:LCOLORS.yellow,color:LCOLORS.navy,size:11,bold:true});
-  ws.getRow(1).height=22;
-
-  // ROW 2 — Tytuł listy (granat)
-  ws.mergeCells(2,1,2,lastCol);
-  var r2=ws.getCell(2,1);
-  r2.value=listTitle;
-  styleCell(r2,{bgColor:LCOLORS.navy,color:LCOLORS.white,size:13,bold:true});
-  ws.getRow(2).height=26;
-
-  // ROW 3 — Nazwa wydarzenia
-  ws.mergeCells(3,1,3,lastCol);
-  var r3=ws.getCell(3,1);
-  r3.value=eventName+(eventMeta?' · '+eventMeta:'');
-  styleCell(r3,{bgColor:'FF1E2547',color:LCOLORS.white,size:10});
-  ws.getRow(3).height=18;
-
-  // ROW 4 — pusta (separator)
-  ws.mergeCells(4,1,4,lastCol);
-  ws.getCell(4,1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFE8EAF6'}};
-  ws.getRow(4).height=6;
-
-  // ROW 5 — Nagłówki kolumn
-  cols.forEach(function(h,i){
-    var cell=ws.getCell(5,i+1);
-    cell.value=h;
-    styleCell(cell,{bgColor:LCOLORS.navy,color:LCOLORS.white,size:10,bold:true});
-    cell.border={bottom:{style:'medium',color:{argb:LCOLORS.red}},top:{style:'thin',color:{argb:LCOLORS.navy}}};
-  });
-  ws.getRow(5).height=20;
-
-  // Dodaj sekcję do arkusza
-  var rowIdx=6;
-  function addSection(label,list){
-    if(!list.length) return;
-    // Nagłówek sekcji
-    ws.mergeCells(rowIdx,1,rowIdx,lastCol);
-    var sc=ws.getCell(rowIdx,1);
-    sc.value=label+' ('+list.length+')';
-    sc.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFE8EAF6'}};
-    sc.font={name:'Calibri',size:9,bold:true,italic:true,color:{argb:LCOLORS.textGray}};
-    sc.alignment={horizontal:'left',vertical:'middle'};
-    ws.getRow(rowIdx).height=16;
-    rowIdx++;
-
-    list.forEach(function(p,i){
-      var isEven=(i%2===0);
-      var bg=isEven?LCOLORS.white:LCOLORS.lightGray;
-      var rowData=[p.imie,p.nazwisko,p.firma,p.branza,p.grupa];
-      if(withEmail) rowData.push(p.isCCP?'–':p.email);
-
-      rowData.forEach(function(val,ci){
-        var cell=ws.getCell(rowIdx,ci+1);
-        cell.value=val||'';
-        cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};
-        cell.font={name:'Calibri',size:10,color:{argb:LCOLORS.navy}};
-        cell.alignment={horizontal:'center',vertical:'middle'};
-        cell.border={bottom:{style:'hair',color:{argb:LCOLORS.midGray}}};
-      });
-      ws.getRow(rowIdx).height=18;
-      rowIdx++;
-    });
-    // Separator po sekcji
-    ws.mergeCells(rowIdx,1,rowIdx,lastCol);
-    ws.getCell(rowIdx,1).fill={type:'pattern',pattern:'solid',fgColor:{argb:LCOLORS.midGray}};
-    ws.getRow(rowIdx).height=3;
-    rowIdx++;
-  }
-
-  addSection('Członkowie '+(ownGroupName||'Grupy'), data.wlasni);
-  if(data.inni.length) addSection('Członkowie innych Grup', data.inni);
-  if(data.goscie.length) addSection('Goście', data.goscie);
-  if(data.partnerzy.length) addSection('Partnerzy', data.partnerzy);
-  if(data.obserwatorzy.length) addSection('Obserwatorzy', data.obserwatorzy);
-
-  // Podsumowanie
-  var totalAll=data.wlasni.length+data.inni.length+data.goscie.length+data.partnerzy.length+data.obserwatorzy.length;
-  ws.mergeCells(rowIdx,1,rowIdx,lastCol);
-  var sumCell=ws.getCell(rowIdx,1);
-  sumCell.value='Łącznie: '+totalAll+' osób';
-  sumCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:LCOLORS.yellow}};
-  sumCell.font={name:'Calibri',size:10,bold:true,color:{argb:LCOLORS.navy}};
-  sumCell.alignment={horizontal:'right',vertical:'middle'};
-  sumCell.border={top:{style:'thin',color:{argb:LCOLORS.navy}}};
-  ws.getRow(rowIdx).height=18;
-
-  // Szerokości kolumn
-  var widths=withEmail?[14,18,28,22,14,32]:[14,18,28,22,14];
-  widths.forEach(function(w,i){ws.getColumn(i+1).width=w});
-
-  // Drukowanie: orientacja pozioma, dopasowanie do strony
-  ws.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,paperSize:9};
-
-  // Generuj i pobierz
-  var buf=await wb.xlsx.writeBuffer();
-  var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a');
-  a.href=url;a.download=fileName+'.xlsx';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-
-// ════ LIST GENERATION HELPERS ════
-
-function listSortKey(p){
-  var g=p.grupa||'';
-  if(g.indexOf('CC+1')===0)return'00'+g;
-  if(g.indexOf('CC+2')===0)return'01'+g;
-  if(g.indexOf('CC+')===0)return'02'+g;
-  if(g.indexOf('BNI')===0)return'ZZ'+g;
-  var m=g.match(/CC(\d+)/);return m?('10'+m[1].padStart(3,'0')+g):('50'+g);
-}
-function listSort(arr){return arr.slice().sort(function(a,b){var k=listSortKey(a).localeCompare(listSortKey(b));return k||a.nazwisko.localeCompare(b.nazwisko,'pl');})}
-
-function getListSections(type){
-  var filt;
-  if(type==='przed') filt=function(p){return true};
-  else filt=function(p){return p.obecny};
-  var potw=type==='przed'?function(p){return p.potw}:function(p){return p.obecny};
-  return{
-    wlasni:  listSort(participants.filter(function(p){return p.wlasna})),
-    inni:    listSort(participants.filter(function(p){return p.innaGrupa&&potw(p)})),
-    goscie:  listSort(participants.filter(function(p){return p.isGosc&&potw(p)})),
-    partnerzy:listSort(participants.filter(function(p){return p.partner&&potw(p)})),
-    obs:     listSort(participants.filter(function(p){return p.obserwator&&potw(p)}))
-  };
-}
-
-function listFileName(type){
-  var date=eventMeta.split('·')[0].trim()||'';
-  var base=eventName.replace('Spotkanie Grupy ','Spotkanie ');
-  if(type==='przed')    return 'Lista Czlonkow i Gosci '+base;
-  if(type==='po_czlonkowie') return 'Lista Uczestnikow '+base+' - Czlonkowie';
-  return 'Lista Uczestnikow '+base+' - Goscie';
-}
-
-function listSubtitle(type){
-  if(type==='przed')    return 'Członkowie Grupy '+(ownGroupName||'');
-  if(type==='po_czlonkowie') return 'Lista Uczestników — Członkowie';
-  return 'Lista Uczestników — Goście';
-}
-
-function listSectionLabel(type){
-  if(type==='przed') return 'Potwierdzeni Członkowie innych Grup';
-  return 'Członkowie innych Grup';
-}
-function listGuestLabel(type){
-  if(type==='przed') return 'Potwierdzeni Goście';
-  return 'Goście';
-}
-
-// ════ DOCX GENERATION (insert table into letterhead) ════
-
-function xmlEsc(s){
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function buildOOXMLTable(type){
-  var sections=getListSections(type);
-  var hasEmail=(type==='po_czlonkowie');
-  var cols=hasEmail
-    ?['Lp.','Imię','Nazwisko','Firma','Branża','Grupa','E-mail']
-    :['Lp.','Imię','Nazwisko','Firma','Branża','Grupa'];
-  var ncols=cols.length;
-
-  // Column widths in twips (total usable width = 9638)
-  var cws=hasEmail
-    ?[480,1050,1350,1800,1900,980,2078]
-    :[480,1250,1500,2200,2558,1650];
-  var totalW=cws.reduce(function(a,b){return a+b},0); // 9638
-
-  function cell(text,w,opts){
-    opts=opts||{};
-    var fill=opts.fill||'FFFFFF';
-    var bold=opts.bold?'<w:b/>':'';
-    var span=opts.span?('<w:gridSpan w:val="'+opts.span+'"/>'):'';
-    var align=opts.align||'center';
-    var sz=opts.sz||18;
-    return '<w:tc>'+
-      '<w:tcPr>'+
-        '<w:tcW w:w="'+w+'" w:type="dxa"/>'+span+
-        '<w:shd w:val="clear" w:color="auto" w:fill="'+fill+'"/>'+
-        '<w:tcMar>'+
-          '<w:top w:w="60" w:type="dxa"/>'+
-          '<w:left w:w="108" w:type="dxa"/>'+
-          '<w:bottom w:w="60" w:type="dxa"/>'+
-          '<w:right w:w="108" w:type="dxa"/>'+
-        '</w:tcMar>'+
-      '</w:tcPr>'+
-      '<w:p>'+
-        '<w:pPr>'+
-          '<w:jc w:val="'+align+'"/>'+
-          '<w:spacing w:before="0" w:after="0" w:line="240" w:lineRule="auto"/>'+
-        '</w:pPr>'+
-        '<w:r>'+
-          '<w:rPr>'+bold+
-            '<w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/>'+
-            '<w:sz w:val="'+sz+'"/><w:szCs w:val="'+sz+'"/>'+
-          '</w:rPr>'+
-          '<w:t xml:space="preserve">'+xmlEsc(text)+'</w:t>'+
-        '</w:r>'+
-      '</w:p>'+
-    '</w:tc>';
-  }
-
-  function mergedRow(text,fill,bold,sz){
-    return '<w:tr>'+
-      cell(text,totalW,{fill:fill,bold:bold,span:ncols,sz:sz||18})+
-    '</w:tr>';
-  }
-
-  function dataRow(cells,fillOdd,fillEven,rowIdx){
-    var fill=(rowIdx%2===0)?'FFFFFF':'F8F8F8';
-    return '<w:tr>'+
-      cells.map(function(c,i){return cell(c,cws[i],{fill:fill})}).join('')+
-    '</w:tr>';
-  }
-
-  // Table properties
-  var tblPr='<w:tblPr>'+
-    '<w:tblW w:w="'+totalW+'" w:type="dxa"/>'+
-    '<w:tblBorders>'+
-      '<w:top w:val="single" w:sz="6" w:space="0" w:color="404040"/>'+
-      '<w:left w:val="single" w:sz="6" w:space="0" w:color="404040"/>'+
-      '<w:bottom w:val="single" w:sz="6" w:space="0" w:color="404040"/>'+
-      '<w:right w:val="single" w:sz="6" w:space="0" w:color="404040"/>'+
-      '<w:insideH w:val="single" w:sz="4" w:space="0" w:color="CCCCCC"/>'+
-      '<w:insideV w:val="single" w:sz="4" w:space="0" w:color="CCCCCC"/>'+
-    '</w:tblBorders>'+
-    '<w:tblLayout w:type="fixed"/>'+
-    '<w:tblCellMar>'+
-      '<w:top w:w="0" w:type="dxa"/>'+
-      '<w:bottom w:w="0" w:type="dxa"/>'+
-    '</w:tblCellMar>'+
-  '</w:tblPr>';
-
-  var tblGrid='<w:tblGrid>'+cws.map(function(w){return '<w:gridCol w:w="'+w+'"/>'}).join('')+'</w:tblGrid>';
-
-  // Build rows
-  var rows='';
-  var eName=eventName+(eventMeta?' \u2013 '+eventMeta.split('\u00b7')[0].trim():'');
-  rows+=mergedRow(eName,'FFD503',true,21);
-  rows+=mergedRow(listSubtitle(type),'FFD503',true,19);
-  // Column headers
-  rows+='<w:tr>'+cols.map(function(h,i){return cell(h,cws[i],{fill:'FFD503',bold:true})}).join('')+'</w:tr>';
-
-  var counter=0;
-  var rowIdx=0;
-  function addSec(label,list){
-    if(!list.length)return;
-    rows+=mergedRow(label,'FFD503',true,18);
-    list.forEach(function(p){
-      counter++;
-      var email=hasEmail?(p.isCCP?'\u2013':(p.email||'')):undefined;
-      var data=[String(counter),p.imie||'',p.nazwisko||'',
-        (p.firma||'').substring(0,32),(p.branza||'').substring(0,35),(p.grupa||'').substring(0,14)];
-      if(hasEmail)data.push((email||'').substring(0,32));
-      rows+='<w:tr>'+data.map(function(v,i){
-        return cell(v,cws[i],{fill:(rowIdx%2===0)?'FFFFFF':'F8F8F8'});
-      }).join('')+'</w:tr>';
-      rowIdx++;
-    });
-  }
-
-  addSec('Cz\u0142onkowie '+(ownGroupName||'w\u0142asnej Grupy'), sections.wlasni);
-  addSec(listSectionLabel(type), sections.inni);
-  addSec(listGuestLabel(type), sections.goscie);
-  if(sections.partnerzy.length) addSec('Partnerzy', sections.partnerzy);
-  if(sections.obs.length) addSec('Obserwatorzy', sections.obs);
-
-  return '<w:tbl>'+tblPr+tblGrid+rows+'</w:tbl>';
-}
-
-async function generateListDOCX(type){
-  if(!participants.length){alert('Wczytaj plik eventowy.');return}
-
-  var buf=letterheadBuf;
-  if(!buf){
-    // Try fetching again
-    try{
-      var res=await fetch('./CC%20Papier%20firmowy%202025%20(3).docx');
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      buf=await res.arrayBuffer();
-    }catch(e){
-      alert('Nie mo\u017cna za\u0142adowa\u0107 szablonu. Sprawd\u017a czy plik "CC Papier firmowy 2025 (3).docx" jest w repozytorium.');
-      return;
-    }
-  }
-
-  try{
-    var zip=await JSZip.loadAsync(buf);
-    var docXml=await zip.file('word/document.xml').async('string');
-
-    // Build table XML
-    var tableXml=buildOOXMLTable(type);
-
-    // Insert table before </w:body> (before <w:sectPr>)
-    docXml=docXml.replace('<w:sectPr>',tableXml+'\n<w:p/>\n<w:sectPr>');
-
-    zip.file('word/document.xml',docXml);
-
-    var outBuf=await zip.generateAsync({type:'arraybuffer',compression:'DEFLATE',compressionOptions:{level:6}});
-    var blob=new Blob([outBuf],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
-    var url=URL.createObjectURL(blob);
-    var a=document.createElement('a');a.href=url;
-    a.download=listFileName(type)+'.docx';
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }catch(err){
-    console.error(err);
-    alert('B\u0142\u0105d: '+err.message);
-  }
-}
-
-// ════ XLSX GENERATION ════
-function generateListXLSX(type){
-  if(!participants.length){alert('Wczytaj plik eventowy.');return}
-  if(typeof ExcelJS==='undefined'){alert('ExcelJS nie załadowany.');return}
-
-  var sections=getListSections(type);
-  var hasEmail=(type==='po_czlonkowie');
-  var cols=hasEmail
-    ?['Lp.','Imię','Nazwisko','Firma','Branża','Grupa','E-mail']
-    :['Lp.','Imię','Nazwisko','Firma','Branża','Grupa'];
-  var cws=hasEmail?[5,12,15,22,22,10,28]:[5,13,16,25,30,13];
-  var YELLOW='FFFFD503',DARK='FF404040',WHITE='FFFFFFFF',LGRAY='FFF8F8F8',BORDER='FFBBBBBB';
-
-  var wb=new ExcelJS.Workbook();
-  var ws=wb.addWorksheet('Lista');
-
-  cws.forEach(function(w,i){ws.getColumn(i+1).width=w});
-
-  function cs(cell,opts){
-    cell.font={name:'Calibri',bold:!!opts.bold,size:opts.size||9,color:{argb:DARK}};
-    cell.alignment={horizontal:'center',vertical:'middle',wrapText:false};
-    if(opts.bg) cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:opts.bg}};
-    var b={style:'thin',color:{argb:BORDER}};
-    cell.border={left:b,right:b,top:b,bottom:b};
-  }
-
-  var row=1;
-
-  // Event header
-  ws.mergeCells(row,1,row,cols.length);
-  cs(ws.getCell(row,1),{bold:true,bg:YELLOW,size:11});
-  ws.getCell(row,1).value=eventName+(eventMeta?' '+eventMeta.split('·')[0].trim():'');
-  ws.getRow(row).height=20; row++;
-
-  ws.mergeCells(row,1,row,cols.length);
-  cs(ws.getCell(row,1),{bold:true,bg:YELLOW,size:10});
-  ws.getCell(row,1).value=listSubtitle(type);
-  ws.getRow(row).height=17; row++;
-
-  // Column headers
-  cols.forEach(function(h,i){cs(ws.getCell(row,i+1),{bold:true,bg:YELLOW});ws.getCell(row,i+1).value=h});
-  ws.getRow(row).height=16; row++;
-  ws.freeze_panes='A4';
-
-  var counter=0;
-  function addSec(label,list){
-    if(!list.length)return;
-    ws.mergeCells(row,1,row,cols.length);
-    cs(ws.getCell(row,1),{bold:true,bg:YELLOW});
-    ws.getCell(row,1).value=label;
-    ws.getRow(row).height=15; row++;
-    list.forEach(function(p){
-      counter++;
-      var bg=(row%2===0)?LGRAY:WHITE;
-      var email=hasEmail?(p.isCCP?'–':(p.email||'')):undefined;
-      var data=[counter,p.imie,p.nazwisko,p.firma,p.branza,p.grupa];
-      if(hasEmail)data.push(email);
-      data.forEach(function(v,i){cs(ws.getCell(row,i+1),{bg:bg});ws.getCell(row,i+1).value=v||'';});
-      ws.getRow(row).height=14; row++;
-    });
-  }
-
-  addSec('Członkowie '+(ownGroupName||'własnej Grupy'), sections.wlasni);
-  addSec(listSectionLabel(type), sections.inni);
-  addSec(listGuestLabel(type), sections.goscie);
-  if(sections.partnerzy.length) addSec('Partnerzy', sections.partnerzy);
-  if(sections.obs.length) addSec('Obserwatorzy', sections.obs);
-
-  ws.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1};
-
-  wb.xlsx.writeBuffer().then(function(buf){
-    var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    var url=URL.createObjectURL(blob);
-    var a=document.createElement('a');a.href=url;
-    a.download=listFileName(type)+'.xlsx';
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  });
-}
-
-// ════ BAZA MAILINGOWA XLSX ════
-function generateBazaXLSX(){
-  if(!participants.length){alert('Wczytaj plik eventowy.');return}
-  if(typeof ExcelJS==='undefined'){alert('ExcelJS nie załadowany.');return}
-
-  var YELLOW='FFFFD503',DARK='FF404040',WHITE='FFFFFFFF',LGRAY='FFF5F5F5',BORDER='FFCCCCCC';
-  var wb=new ExcelJS.Workbook();
-
-  function buildTab(name,list){
-    var ws=wb.addWorksheet(name);
-    ['A','B','C'].forEach(function(col,i){ws.getColumn(i+1).width=[14,16,34][i]});
-    var b={style:'thin',color:{argb:BORDER}};
-    function hdr(cell,txt,bold){
-      cell.value=txt;
-      cell.font={name:'Calibri',bold:!!bold,size:10,color:{argb:DARK}};
-      cell.alignment={horizontal:'left',vertical:'middle'};
-      cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:bold?YELLOW:WHITE}};
-      cell.border={left:b,right:b,top:b,bottom:b};
-    }
-    hdr(ws.getCell(1,1),'Imię',true);
-    hdr(ws.getCell(1,2),'Nazwisko',true);
-    hdr(ws.getCell(1,3),'E-mail',true);
-    ws.getRow(1).height=18;
-    list.forEach(function(p,i){
-      var bg=(i%2===0)?WHITE:LGRAY;
-      [[p.imie],[p.nazwisko],[p.email]].forEach(function(v,ci){
-        var cell=ws.getCell(i+2,ci+1);
-        cell.value=v[0]||'';
-        cell.font={name:'Calibri',size:10,color:{argb:DARK}};
-        cell.alignment={horizontal:'left',vertical:'middle'};
-        cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};
-        cell.border={left:b,right:b,top:b,bottom:b};
-      });
-      ws.getRow(i+2).height=15;
-    });
-  }
-
-  // Sorting
-  var all=listSort(participants.slice());
-  var tydz=all.filter(function(p){return p.wlasna||p.innaGrupa||p.isGosc||p.partner});
-  var dzien=all.filter(function(p){return p.wlasna||((p.innaGrupa||p.isGosc||p.partner)&&p.potw)});
-  var czl=all.filter(function(p){return (p.wlasna||p.innaGrupa||p.obserwator)&&p.obecny});
-  var gos=all.filter(function(p){return (p.isGosc||p.partner||p.isBNI)&&p.obecny});
-
-  buildTab('Tydzień przed',tydz);
-  buildTab('Dzień przed',dzien);
-  buildTab('Podsumowanie Członkowie',czl);
-  buildTab('Podsumowanie Goście',gos);
-
-  var fname='Baza mailingowa '+eventName.replace('Spotkanie Grupy ','Spotkanie ');
-
-  wb.xlsx.writeBuffer().then(function(buf){
-    var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    var url=URL.createObjectURL(blob);
-    var a=document.createElement('a');a.href=url;a.download=fname+'.xlsx';
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  });
-}
-
-// alias dla modalu
-function openModal(pelne){openModalFn(pelne)}
-function openModalFn(pelne){
-  var p=lookupByName[pelne.toLowerCase()];if(!p)return;
-  var tpl=getTemplateForPerson(p);
-  var ac=tpl?tpl.accentColor:'#FFD503',tc=tpl?tpl.textColor:'#121635',logo=tpl?tpl.logoText:'CC';
-  document.getElementById('bm-content').innerHTML=badgeModal(p,ac,tc,logo);
-  document.getElementById('badge-modal').classList.add('open');
-}
-</script>
-</body>
-</html>
