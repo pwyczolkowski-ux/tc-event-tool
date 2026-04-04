@@ -90,7 +90,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:var(--g1)}
 /* MODAL */
 #bmod{display:none;position:fixed;inset:0;background:rgba(18,22,53,.72);z-index:500;align-items:center;justify-content:center}
 #bmod.open{display:flex}
-.bmc{background:#fff;padding:36px 36px 28px;max-width:420px;width:92%;position:relative}
+.bmc{background:#fff;padding:32px 32px 24px;max-width:560px;width:95%;position:relative}
 .bmcl{position:absolute;top:14px;right:18px;font-size:24px;font-weight:100;cursor:pointer;background:none;border:none;color:var(--g4)}
 .bmbg{width:100%;margin-bottom:22px;border:2px solid rgba(0,0,0,.1)}
 .bmbb{padding:24px 26px 16px;position:relative;background:#fff}
@@ -601,7 +601,7 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeMod();}
 function bmodal(p,ac,tc,lo){
   var isBNI=p.isBNI;
   var bgImg=isBNI?BADGE_BG_BNI:BADGE_BG_CC;
-  return '<div style="position:relative;overflow:hidden;width:100%;padding-bottom:64.2%;margin-bottom:20px;border:2px solid '+(isBNI?'#cc0000':'#e8b800')+';">'+
+  return '<div style="position:relative;overflow:hidden;width:100%;padding-bottom:66%;margin-bottom:20px;border:2px solid '+(isBNI?'#cc0000':'#e8b800')+';">'+
     '<img src="'+bgImg+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;">'+
     // Name — ~30% from top
     '<div style="position:absolute;left:0;right:0;top:28%;text-align:center;padding:0 12%;z-index:1">'+
@@ -611,7 +611,7 @@ function bmodal(p,ac,tc,lo){
     '</div>'+
     // Firma ~54%
     '<div style="position:absolute;left:0;right:0;top:54%;text-align:center;padding:0 10%;z-index:1">'+
-      '<div style="font-size:clamp(10px,2vw,15px);font-weight:400;color:#222;text-shadow:0 0 3px rgba(255,255,255,.9)">'+esc(p.firma)+'</div>'+
+      '<div style="font-size:clamp(10px,2vw,15px);font-weight:700;color:#1a1a1a;text-shadow:0 0 3px rgba(255,255,255,.9)">'+esc(p.firma)+'</div>'+
       '<div style="font-size:clamp(9px,1.5vw,12px);font-weight:300;color:#444;margin-top:3px;text-shadow:0 0 3px rgba(255,255,255,.9)">'+esc(p.branza)+'</div>'+
     '</div>'+
     // Group bottom right
@@ -1015,6 +1015,57 @@ async function genBaza(){
   });
   var buf=await wb.xlsx.writeBuffer();
   dl(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'Baza_HubSpot_'+evName.replace(/[^a-zA-Z0-9_]/g,'_')+'.xlsx');
+}
+
+// ══ 1x1 RENDER ══
+function renderX1(){
+  var el=document.getElementById('xsl');if(!el)return;
+  el.innerHTML=x1list.map(function(p){
+    var inf=byName[p.name.toLowerCase()];
+    return '<div class="xi'+(selPerson===p.name?' active':'')+'" onclick="selX1(\''+escA(p.name)+'\')">'+
+      '<div class="xin"><span>'+esc(p.name)+'</span><span class="xic">'+p.mtgs.length+'</span></div>'+
+      '<div class="xif">'+esc(inf?inf.firma:'')+'</div></div>';
+  }).join('')||'<div style="padding:16px;font-size:12px;color:#aaa">Brak</div>';
+}
+function filterX1(v){
+  var el=document.getElementById('xsl');if(!el)return;
+  var vis=x1list.filter(function(p){return!v||p.name.toLowerCase().includes(v.toLowerCase());});
+  el.innerHTML=vis.map(function(p){
+    var inf=byName[p.name.toLowerCase()];
+    return '<div class="xi'+(selPerson===p.name?' active':'')+'" onclick="selX1(\''+escA(p.name)+'\')">'+
+      '<div class="xin"><span>'+esc(p.name)+'</span><span class="xic">'+p.mtgs.length+'</span></div>'+
+      '<div class="xif">'+esc(inf?inf.firma:'')+'</div></div>';
+  }).join('')||'<div style="padding:16px;font-size:12px;color:#aaa">Brak</div>';
+}
+function selX1(name){
+  selPerson=name;
+  filterX1(document.getElementById('xsi')?document.getElementById('xsi').value:'');
+  renderX1det(name);
+}
+function renderX1det(name){
+  var p=x1map[name],inf=byName[name.toLowerCase()],el=document.getElementById('xd');if(!p||!el)return;
+  var tot=p.mtgs.reduce(function(s,m){return s+(parseInt(m.dur)||0);},0);
+  var rows=p.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');}).map(function(m,i){
+    var pi=byName[m.partner.toLowerCase()];
+    var ts=m.start?(m.start+(m.end?'\u2013'+m.end:'')):'—';
+    return '<div class="xmr">'+
+      '<div class="xmt">'+esc(ts)+'</div>'+
+      '<div><div class="xmn">'+(i+1)+'. '+esc(m.partner)+'</div>'+
+      '<div class="xmd">'+esc(pi?[pi.firma,pi.branza].filter(Boolean).join(' \u00b7 '):'')+'</div></div>'+
+      '<div class="xdu">'+esc(m.dur?m.dur+' min':'\u2014')+'</div>'+
+    '</div>';
+  }).join('');
+  el.innerHTML=
+    '<div class="xdh">'+
+      '<div class="xdhn">'+esc(name)+'</div>'+
+      '<div class="xdhf">'+esc(inf?inf.firma||'':'')+'</div>'+
+      '<div class="xdhs"><span>'+p.mtgs.length+'</span> spotka\u0144'+(tot?' \u00a0\u00b7\u00a0 <span>'+tot+'</span> min':'')+'</div>'+
+    '</div>'+
+    '<div class="xm">'+rows+'</div>'+
+    '<div class="xft np">'+
+      '<button class="btn btn-n btn-sm" onclick="genX1DOCX(selPerson)">DOCX</button>'+
+      '<button class="btn btn-n btn-sm" onclick="genX1PDF(selPerson)">PDF</button>'+
+    '</div>';
 }
 
 </script>
