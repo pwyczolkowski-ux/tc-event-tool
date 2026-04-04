@@ -283,11 +283,34 @@ body{font-size:11px}.tbl-wrap{border:none}th{font-size:9px;padding:5px 10px}td{p
 // ════ COLUMN INDICES — Lista zaproszeń ════
 var C={IMIE:1,NAZWISKO:2,GRUPA:5,FIRMA:6,BRANZA:7,SKALA:8,DYREKTOR:9,EMAIL:10,ROLA:14,POTW:37,OBECNY:38,CC:39,CCP:40,BNI:41,GOSC:42};
 
+// ════ EMBEDDED BADGE TEMPLATE ════
+// Szablon pobierany z repozytorium GitHub Pages
+
 // ════ STATE ════
 var participants=[],meetings=[],lookupByName={},x1Map={},x1List=[],selectedPerson=null;
 var eventName='',eventMeta='';
 var currentFilter='all',badgeFilter='all',currentView='full';
 var badgeTemplateBuffer=null,badgeTemplateXml=null,badgeTemplateRelsXml=null;
+
+// ════ AUTO-INIT BADGE TEMPLATE FROM EMBEDDED DATA ════
+document.addEventListener('DOMContentLoaded', function(){
+  initEmbeddedBadge();
+});
+async function initEmbeddedBadge(){
+  try{
+    var res = await fetch('./Badge%20CC.pptx');
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    badgeTemplateBuffer = await res.arrayBuffer();
+    var zip = await JSZip.loadAsync(badgeTemplateBuffer);
+    badgeTemplateXml     = await zip.file('ppt/slides/slide1.xml').async('string');
+    badgeTemplateRelsXml = await zip.file('ppt/slides/_rels/slide1.xml.rels').async('string');
+    document.getElementById('btb-status').textContent = 'Badge CC.pptx (załadowany)';
+    document.getElementById('btb-status').classList.add('loaded');
+  }catch(e){
+    console.warn('Błąd ładowania szablonu:', e);
+    document.getElementById('btb-status').textContent = 'Nie można pobrać szablonu — wczytaj ręcznie';
+  }
+}
 
 // ════ MAIN FILE HANDLING ════
 function handleDrop(e){e.preventDefault();document.getElementById('drop-zone').classList.remove('drag-over');var f=e.dataTransfer.files[0];if(f)handleFile(f)}
