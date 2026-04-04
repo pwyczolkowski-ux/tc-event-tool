@@ -207,12 +207,22 @@ body.pb #pax{display:none!important}
       <button class="tab" onclick="goTab('mailing',this)">Listy mailingowe</button>
     </div>
     <div id="tab-lists">
-      <div class="filter-bar np">
+      <div class="filter-bar np" id="list-filters">
         <span class="fl">Filtr:</span>
         <button class="pill on" onclick="setF('all',this)">Wszyscy</button>
         <button class="pill" onclick="setF('confirmed',this)">Potwierdzeni</button>
         <button class="pill" onclick="setF('present',this)">Obecni</button>
         <button class="pill" onclick="setF('absent',this)">Nieobecni</button>
+        <select id="sel-typ" onchange="setTyp(this.value)" style="margin-left:8px;padding:5px 28px 5px 10px;font-family:var(--font);font-size:11px;border:1px solid var(--g2);background:#fff;color:var(--g4);cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%226%22 viewBox=%220 0 10 6%22><path d=%22M0 0l5 6 5-6z%22 fill=%22%23555%22/></svg>');background-repeat:no-repeat;background-position:right 8px center;outline:none">
+          <option value="">Wszystkie typy</option>
+          <option value="CC">CC</option>
+          <option value="CC+">CC+</option>
+          <option value="BNI+">BNI+</option>
+          <option value="Gość">Gość</option>
+        </select>
+        <select id="sel-dyr" onchange="setDyr(this.value)" style="padding:5px 28px 5px 10px;font-family:var(--font);font-size:11px;border:1px solid var(--g2);background:#fff;color:var(--g4);cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%226%22 viewBox=%220 0 10 6%22><path d=%22M0 0l5 6 5-6z%22 fill=%22%23555%22/></svg>');background-repeat:no-repeat;background-position:right 8px center;outline:none">
+          <option value="">Wszyscy dyrektorzy</option>
+        </select>
       </div>
       <div id="list-wrap"></div>
     </div>
@@ -301,7 +311,7 @@ var C={IMIE:1,NAZWISKO:2,GRUPA:5,FIRMA:6,BRANZA:7,SKALA:8,DYREKTOR:9,EMAIL:10,RO
 // ══ STATE ══
 var P=[],meetings=[],byName={},x1map={},x1list=[],selPerson=null;
 var dirMap={},ownGroup='',evName='',evMeta='';
-var filt='all',bfilt='all';
+var filt='all',bfilt='all',filtTyp='',filtDyr='';
 var sCol=null,sDir=1;
 var tplMap={},tplBuf=null,tplReady=false,lhBuf=null;
 
@@ -340,7 +350,7 @@ function resetFile(){
   document.getElementById('banner').style.display='none';
   document.getElementById('content').style.display='none';
   document.getElementById('hev').textContent='';
-  P=[];meetings=[];byName={};x1map={};x1list=[];selPerson=null;
+  P=[];meetings=[];byName={};x1map={};x1list=[];selPerson=null;filtTyp='';filtDyr='';
   ownGroup='';evName='';evMeta='';sCol=null;sDir=1;
 }
 function showErr(m){var e=document.getElementById('err');e.textContent=m;e.classList.add('show');}
@@ -432,15 +442,25 @@ function renderAll(){
   document.getElementById('sp').textContent=P.filter(function(p){return p.obecny;}).length;
   document.getElementById('sm').textContent=meetings.length;
   document.getElementById('content').style.display='block';
-  renderList();renderBadge();renderX1();
+  renderList();renderBadge();renderX1();populateSelects();
 }
 
 // ══ FILTER ══
-function byFilt(f){
+function byFilt(f,typ,dyr){
+  typ=typ!==undefined?typ:filtTyp;
+  dyr=dyr!==undefined?dyr:filtDyr;
   return P.filter(function(p){
-    if(f==='confirmed')return p.potw;
-    if(f==='present')return p.obecny;
-    if(f==='absent')return p.potw&&!p.obecny;
+    // Status filter
+    if(f==='confirmed'&&!p.potw)return false;
+    if(f==='present'&&!p.obecny)return false;
+    if(f==='absent'&&!(p.potw&&!p.obecny))return false;
+    // Type filter
+    if(typ){
+      var t=ttype(p).l;
+      if(t!==typ)return false;
+    }
+    // Director filter
+    if(dyr&&p.dyrektor!==dyr)return false;
     return true;
   });
 }
@@ -779,6 +799,22 @@ function genBaza(){
 // ══ UI HELPERS ══
 function goTab(name,btn){document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});btn.classList.add('active');['lists','badge','x1','mailing'].forEach(function(n){document.getElementById('tab-'+n).style.display=n===name?'block':'none';});}
 function setF(f,btn){sCol=null;sDir=1;filt=f;document.querySelectorAll('#tab-lists .pill').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');renderList();}
+function setTyp(v){filtTyp=v;renderList();}
+function setDyr(v){filtDyr=v;renderList();}
+function populateSelects(){
+  // Populate directors dropdown from actual data
+  var dyrs=[...new Set(P.map(function(p){return p.dyrektor;}).filter(Boolean))].sort();
+  var sel=document.getElementById('sel-dyr');
+  if(!sel)return;
+  var cur=sel.value;
+  while(sel.options.length>1)sel.remove(1);
+  dyrs.forEach(function(d){
+    var o=document.createElement('option');
+    o.value=d;o.textContent=d+(dirMap[d]?' ('+dirMap[d]+')':'');
+    sel.appendChild(o);
+  });
+  if(cur)sel.value=cur;
+}
 function setBF(f,btn){bfilt=f;document.querySelectorAll('#tab-badge .pill').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');renderBadge();}
 function noun(n,s1,s2,s5){if(n===1)return s1;if(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))return s2;return s5;}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
