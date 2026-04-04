@@ -579,18 +579,26 @@ function bcard(p,ac,tc,lo){
   var isBNI=p.isBNI;
   var bgImg=isBNI?BADGE_BG_BNI:BADGE_BG_CC;
   var namec='#1a1a1a';
+
   return '<div class="bw" style="position:relative;overflow:hidden;border:1.5px solid '+(isBNI?'#cc0000':'#e8b800')+';">'+
+    // Background
     '<img src="'+bgImg+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;" aria-hidden="true">'+
-    '<div style="position:absolute;left:0;right:0;top:27%;text-align:center;padding:0 6px;z-index:1">'+
-      '<div style="font-size:11px;font-weight:700;color:'+namec+';line-height:1.2;text-shadow:0 0 3px rgba(255,255,255,.8)">'+
+    // Name — upper-middle area
+    '<div style="position:absolute;left:0;right:0;top:30%;text-align:center;padding:0 8px;z-index:1">'+
+      '<div style="font-size:11.5px;font-weight:700;color:'+namec+';line-height:1.25;text-shadow:0 0 3px rgba(255,255,255,.8)">'+
         esc(p.imie)+' '+esc(p.nazwisko)+
       '</div>'+
     '</div>'+
-    '<div style="position:absolute;left:0;right:0;top:52%;text-align:center;padding:0 6px;z-index:1">'+
-      '<div style="font-size:7.5px;font-weight:400;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(p.firma)+'</div>'+
-      '<div style="font-size:7px;font-weight:300;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">'+esc(p.branza)+'</div>'+
+    // Company — below name
+    '<div style="position:absolute;left:0;right:0;top:58%;text-align:center;padding:0 8px;z-index:1">'+
+      '<div style="font-size:8px;font-weight:400;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 0 3px rgba(255,255,255,.9)">'+
+        esc(p.firma)+
+      '</div>'+
     '</div>'+
-    '<div style="position:absolute;right:8px;bottom:'+(isBNI?'6px':'8px')+';font-size:7px;font-weight:700;color:'+(isBNI?'#cc0000':'#1a1a1a')+';z-index:1">'+esc(p.grupa)+'</div>'+
+    // Group — bottom right, inside footer area
+    '<div style="position:absolute;right:8px;bottom:'+(isBNI?'6px':'8px')+';font-size:7px;font-weight:700;color:'+(isBNI?'#cc0000':'#1a1a1a')+';z-index:1">'+
+      esc(p.grupa)+
+    '</div>'+
   '</div>';
 }
 
@@ -598,25 +606,549 @@ function openMod(pelne){currentBadgePerson=pelne;var p=byName[pelne.toLowerCase(
 function closeMod(){document.getElementById('bmod').classList.remove('open');}
 function printBadge(){if(currentBadgePerson)genSingleBadgePPTX(currentBadgePerson);}
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeMod();});
-function bmodal(p,ac,tc,lo){
-  var isBNI=p.isBNI;
-  var bgImg=isBNI?BADGE_BG_BNI:BADGE_BG_CC;
-  return '<div style="position:relative;overflow:hidden;width:100%;padding-bottom:64.2%;margin-bottom:20px;border:2px solid '+(isBNI?'#cc0000':'#e8b800')+';">'+
-    '<img src="'+bgImg+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill;">'+
-    // Name — ~30% from top
-    '<div style="position:absolute;left:0;right:0;top:28%;text-align:center;padding:0 12%;z-index:1">'+
-      '<div style="font-size:clamp(14px,3vw,22px);font-weight:700;color:#1a1a1a;line-height:1.2;text-shadow:0 0 4px rgba(255,255,255,.9)">'+
-        esc(p.imie)+' '+esc(p.nazwisko)+
-      '</div>'+
+function bmodal(p,ac,tc,lo){return'<div class="bmbg" style="border-color:'+ac+'"><div class="bmbb"><div class="bmbd" style="background:'+ac+'"></div><div class="bmbl" style="color:'+ac+'">'+esc(lo)+'</div><div class="bmbn">'+esc(p.imie)+' '+esc(p.nazwisko)+'</div><div class="bmbdiv"></div><div class="bmbf">'+esc(p.firma)+'</div><div class="bmbbr">'+esc(p.branza)+'</div></div><div class="bmbft" style="background:'+ac+'"><span class="bmbwl" style="color:'+tc+'">Where Leaders Connect™</span><span class="bmbgr" style="color:'+tc+'">'+esc(p.grupa)+'</span></div></div>';}
+
+
+async function genSingleBadgePPTX(pelne){
+  var p=byName[pelne.toLowerCase()];
+  if(!p||!tplBuf){alert('Brak danych lub szablonu.');return;}
+  var t=getTpl(p);if(!t){alert('Brak szablonu dla tego typu.');return;}
+  try{
+    var out=await JSZip.loadAsync(tplBuf);
+    var pXml=await out.file('ppt/presentation.xml').async('string');
+    var pRels=await out.file('ppt/_rels/presentation.xml.rels').async('string');
+    var ct=await out.file('[Content_Types].xml').async('string');
+    var ST='http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide';
+    var SC='application/vnd.openxmlformats-officedocument.presentationml.slide+xml';
+    // Wyczyść stare slajdy template
+    pRels=pRels.replace(/<Relationship[^>]*slides\/slide\d+\.xml[^>]*\/>/g,'');
+    ct=ct.replace(/<Override PartName="\/ppt\/slides\/slide\d+\.xml"[^>]*\/>/g,'');
+    // Jeden slajd
+    out.file('ppt/slides/slide1.xml',fillB(t.xml,p));
+    out.file('ppt/slides/_rels/slide1.xml.rels',t.rels);
+    var rId='rId200';
+    var sId=400;
+    pXml=pXml.replace(/<p:sldIdLst>[\s\S]*?<\/p:sldIdLst>/,
+      '<p:sldIdLst><p:sldId id="'+sId+'" r:id="'+rId+'"/></p:sldIdLst>');
+    pRels=pRels.replace('</Relationships>',
+      '<Relationship Id="'+rId+'" Type="'+ST+'" Target="slides/slide1.xml"/></Relationships>');
+    ct=ct.replace('</Types>',
+      '<Override PartName="/ppt/slides/slide1.xml" ContentType="'+SC+'"/></Types>');
+    out.file('ppt/presentation.xml',pXml);
+    out.file('ppt/_rels/presentation.xml.rels',pRels);
+    out.file('[Content_Types].xml',ct);
+    var blob=await out.generateAsync({type:'blob',compression:'DEFLATE'});
+    dl(blob,'Badge_'+p.imie+'_'+p.nazwisko+'.pptx');
+  }catch(e){console.error(e);alert('Błąd: '+e.message);}
+}
+
+async function genBadgePPTX(){
+  var list=byFilt(bfilt);
+  if(!list.length||!tplBuf){alert('Brak danych lub szablonu.');return;}
+  try{
+    var out=await JSZip.loadAsync(tplBuf);
+    var pXml=await out.file('ppt/presentation.xml').async('string');
+    var pRels=await out.file('ppt/_rels/presentation.xml.rels').async('string');
+    var ct=await out.file('[Content_Types].xml').async('string');
+
+    var ST='http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide';
+    var SC='application/vnd.openxmlformats-officedocument.presentationml.slide+xml';
+
+    // Znajdź max rId w całym pliku rels żeby uniknąć konfliktów
+    var allIds=[...pRels.matchAll(/Id="rId(\d+)"/g)].map(function(m){return parseInt(m[1]);});
+    var nextRId=Math.max.apply(null,allIds.concat([100]))+10;
+    var nextSldId=400;
+
+    // ── Usuń WSZYSTKIE istniejące referencje do slajdów z rels i Content_Types ──
+    // (template ma slide1/2/3 — zostawiamy tylko nasze nowo wygenerowane)
+    pRels=pRels.replace(/<Relationship[^>]*slides\/slide\d+\.xml[^>]*\/>/g,'');
+    ct=ct.replace(/<Override PartName="\/ppt\/slides\/slide\d+\.xml"[^>]*\/>/g,'');
+
+    // ── Generuj slajdy dla każdej osoby ──
+    var nSlds='',nRels='',nCt='';
+
+    for(var i=0;i<list.length;i++){
+      var p=list[i],t=getTpl(p),n=i+1;
+      if(!t)continue;
+      out.file('ppt/slides/slide'+n+'.xml',fillB(t.xml,p));
+      out.file('ppt/slides/_rels/slide'+n+'.xml.rels',t.rels);
+      var rId='rId'+nextRId++;
+      var sId=nextSldId++;
+      nSlds+='<p:sldId id="'+sId+'" r:id="'+rId+'"/>';
+      nRels+='<Relationship Id="'+rId+'" Type="'+ST+'" Target="slides/slide'+n+'.xml"/>';
+      nCt+='<Override PartName="/ppt/slides/slide'+n+'.xml" ContentType="'+SC+'"/>';
+    }
+
+    // ── Wstaw do XML ──
+    pXml=pXml.replace(/<p:sldIdLst>[\s\S]*?<\/p:sldIdLst>/,'<p:sldIdLst>'+nSlds+'</p:sldIdLst>');
+    pRels=pRels.replace('</Relationships>',nRels+'</Relationships>');
+    ct=ct.replace('</Types>',nCt+'</Types>');
+
+    out.file('ppt/presentation.xml',pXml);
+    out.file('ppt/_rels/presentation.xml.rels',pRels);
+    out.file('[Content_Types].xml',ct);
+
+    var blob=await out.generateAsync({type:'blob',compression:'DEFLATE'});
+    dl(blob,'Badge_'+evName.replace(/[^a-zA-Z0-9_ -]/g,'_')+'.pptx');
+  }catch(e){console.error(e);alert('Błąd: '+e.message);}
+}
+
+function fillB(xml,p){
+  // Universal: match any {{...}} and map by normalized key — robust for all encodings
+  return xml.replace(/\{\{([^}]+)\}\}/g,function(match,key){
+    var k=key.trim().toLowerCase()
+      .replace(/\u0105/g,'a').replace(/\u0107/g,'c').replace(/\u0119/g,'e')
+      .replace(/\u0142/g,'l').replace(/\u0144/g,'n').replace(/\u00f3/g,'o')
+      .replace(/\u015b/g,'s').replace(/\u017a/g,'z').replace(/\u017c/g,'z');
+    if(k==='imie'||k==='imi\u0119')     return xe(p.imie);
+    if(k==='nazwisko')                   return xe(p.nazwisko);
+    if(k==='firma'||k==='nazwa firmy')   return xe(p.firma);
+    if(k.startsWith('bran'))             return xe(p.branza);
+    if(k==='grupa')                      return xe(p.grupa);
+    return match; // leave unknown placeholders as-is
+  });
+}
+
+function xe(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');}
+
+// ══ 1x1 ══
+function renderX1(f){
+  f=f||'';var el=document.getElementById('xsl');
+  var vis=x1list.filter(function(p){return!f||p.name.toLowerCase().includes(f.toLowerCase());});
+  el.innerHTML=vis.map(function(p){var inf=byName[p.name.toLowerCase()];return'<div class="xi'+(selPerson===p.name?' active':'')+'" onclick="selX1(\''+escA(p.name)+'\')"><div class="xin"><span>'+esc(p.name)+'</span><span class="xic">'+p.mtgs.length+'</span></div><div class="xif">'+esc(inf?inf.firma:'')+'</div></div>';}).join('')||'<div style="padding:16px;font-size:12px;color:#aaa">Brak</div>';
+}
+function filterX1(v){renderX1(v);}
+function selX1(name){selPerson=name;renderX1(document.getElementById('xsi').value);renderX1det(name);}
+function renderX1det(name){
+  var p=x1map[name],inf=byName[name.toLowerCase()],el=document.getElementById('xd');if(!p)return;
+  var tot=p.mtgs.reduce(function(s,m){return s+(parseInt(m.dur)||0);},0);
+  var rows=p.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');}).map(function(m,i){
+    var pi=byName[m.partner.toLowerCase()];
+    var ts=m.start?(m.start+(m.end?'\u2013'+m.end:'')):'—';
+    return'<div class="xmr">'+
+      '<div class="xmt">'+esc(ts)+'</div>'+
+      '<div><div class="xmn">'+(i+1)+'. '+esc(m.partner)+'</div>'+
+      '<div class="xmd">'+esc(pi?[pi.firma,pi.branza].filter(Boolean).join(' \u00b7 '):'')+'</div></div>'+
+      '<div class="xdu">'+esc(m.dur?m.dur+' min':'\u2014')+'</div>'+
+    '</div>';
+  }).join('');
+  el.innerHTML=
+    '<div class="xdh">'+
+      '<div class="xdhn">'+esc(name)+'</div>'+
+      '<div class="xdhf">'+esc(inf?inf.firma||'':'')+'</div>'+
+      '<div class="xdhs"><span>'+p.mtgs.length+'</span> spotka\u0144'+(tot?' \u00a0\u00b7\u00a0 <span>'+tot+'</span> min':'')+'</div>'+
     '</div>'+
-    // Firma ~54%
-    '<div style="position:absolute;left:0;right:0;top:54%;text-align:center;padding:0 10%;z-index:1">'+
-      '<div style="font-size:clamp(10px,2vw,15px);font-weight:400;color:#222;text-shadow:0 0 3px rgba(255,255,255,.9)">'+esc(p.firma)+'</div>'+
-      '<div style="font-size:clamp(9px,1.5vw,12px);font-weight:300;color:#444;margin-top:3px;text-shadow:0 0 3px rgba(255,255,255,.9)">'+esc(p.branza)+'</div>'+
-    '</div>'+
-    // Group bottom right
-    '<div style="position:absolute;right:3%;bottom:'+(isBNI?'5%':'6%')+';font-size:clamp(9px,1.5vw,13px);font-weight:700;color:'+(isBNI?'#cc0000':'#1a1a1a')+';z-index:1">'+esc(p.grupa)+'</div>'+
-  '</div>';
+    '<div class="xm">'+rows+'</div>'+
+    '<div class="xft np">'+
+      '<button class="btn btn-n btn-sm" onclick="genX1DOCX(selPerson)">DOCX</button>'+
+      '<button class="btn btn-n btn-sm" onclick="genX1PDF(selPerson)">PDF</button>'+
+    '</div>';
+}
+
+function x1page(name){var p=x1map[name],inf=byName[name.toLowerCase()];if(!p)return'';var tot=p.mtgs.reduce(function(s,m){return s+(parseInt(m.dur)||0);},0);var rows=p.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');}).map(function(m,i){var pi=byName[m.partner.toLowerCase()];return'<div class="xpm"><div class="xpmt">'+esc(m.start||'—')+'</div><div><div class="xpmn">'+(i+1)+'. '+esc(m.partner)+'</div><div class="xpmi">'+esc(pi?[pi.firma,pi.branza].filter(Boolean).join(' · '):'')+'</div></div><div class="xpmd">'+esc(m.dur?m.dur+' min':'')+'</div></div>';}).join('');return'<div class="xpp"><div class="xph"><div class="xpn">'+esc(name)+(inf&&inf.firma?' · '+esc(inf.firma):'')+'</div><div class="xpe">'+esc(evName)+' · '+esc(evMeta)+'</div></div>'+rows+(tot?'<div class="xpf">Łącznie: '+tot+' minut</div>':'')+'</div>';}
+function printOneX1(name){document.getElementById('pax').innerHTML=x1page(name);window.print();}
+function printAllX1(){document.getElementById('pax').innerHTML=x1list.map(function(p){return x1page(p.name);}).join('');window.print();}
+
+// ══ MAILING LIST HELPERS ══
+function lSortKey(p){var g=p.grupa||'';if(g.startsWith('CC+1'))return'00'+g;if(g.startsWith('CC+2'))return'01'+g;if(g.startsWith('CC+'))return'02'+g;if(g.startsWith('BNI'))return'ZZ'+g;var m=g.match(/CC(\d+)/);return m?'10'+m[1].padStart(3,'0')+g:'50'+g;}
+function lSort(arr){return arr.slice().sort(function(a,b){var k=lSortKey(a).localeCompare(lSortKey(b));return k||a.nazwisko.localeCompare(b.nazwisko,'pl');});}
+function getSecs(type){
+  var potw=(type==='przed')?function(p){return p.potw;}:function(p){return p.obecny;};
+  return{
+    wlasni:lSort(P.filter(function(p){return p.wlasna;})),
+    inni:lSort(P.filter(function(p){return p.inna&&potw(p);})),
+    goscie:lSort(P.filter(function(p){return p.isGosc&&potw(p);})),
+    part:lSort(P.filter(function(p){return p.partner&&potw(p);})),
+    obs:lSort(P.filter(function(p){return p.obs&&potw(p);}))
+  };
+}
+function lFname(type){var b=evName.replace('Spotkanie Grupy ','Spotkanie ');if(type==='przed')return'Lista Czlonkow i Gosci '+b;if(type==='po_czl')return'Lista Uczestnikow '+b+' - Czlonkowie';return'Lista Uczestnikow '+b+' - Goscie';}
+function lSub(type){if(type==='przed')return'Członkowie Grupy '+(ownGroup||'');if(type==='po_czl')return'Lista Uczestników — Członkowie';return'Lista Uczestników — Goście';}
+function lSecLabel(type){return type==='przed'?'Potwierdzeni Członkowie innych Grup':'Członkowie innych Grup';}
+function lGostLabel(type){return type==='przed'?'Potwierdzeni Goście':'Goście';}
+
+// ══ DOCX GENERATION ══
+function xesc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function buildTable(type){
+  var secs=getSecs(type),hasEmail=(type==='po_czl');
+  var cols=hasEmail?['Lp.','Imię','Nazwisko','Firma','Branża','Grupa','E-mail']:['Lp.','Imię','Nazwisko','Firma','Branża','Grupa'];
+  var nc=cols.length;
+  var cws=hasEmail?[480,1050,1350,1800,1900,980,2078]:[480,1250,1500,2200,2558,1650];
+  var tw=cws.reduce(function(a,b){return a+b;},0);
+
+  // XML helpers - avoid quote escaping issues
+  function wa(name,val){return ' w:'+name+'="'+val+'"';}
+  function wt(txt){return '<w:t xml:space="preserve">'+xesc(txt)+'</w:t>';}
+  function rpr(bold,sz){return '<w:rPr>'+(bold?'<w:b/>':'')+'<w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz'+wa('val',sz)+'/>'+('<w:szCs'+wa('val',sz)+'/>/')+'</w:rPr>';}
+
+  function cell(txt,w,fill,bold,span,sz){
+    sz=sz||18;fill=fill||'FFFFFF';
+    var tcp='<w:tcPr>'+
+      '<w:tcW'+wa('w',w)+wa('type','dxa')+'/>'+
+      (span?'<w:gridSpan'+wa('val',span)+'/>':'')+
+      '<w:shd'+wa('val','clear')+wa('color','auto')+wa('fill',fill)+'/>'+
+      '<w:tcMar>'+
+        '<w:top'+wa('w','60')+wa('type','dxa')+'/>'+
+        '<w:left'+wa('w','108')+wa('type','dxa')+'/>'+
+        '<w:bottom'+wa('w','60')+wa('type','dxa')+'/>'+
+        '<w:right'+wa('w','108')+wa('type','dxa')+'/>'+
+      '</w:tcMar>'+
+    '</w:tcPr>';
+    var pp='<w:pPr><w:jc'+wa('val','center')+'/>'+
+      '<w:spacing'+wa('before','0')+wa('after','0')+wa('line','240')+wa('lineRule','auto')+'/></w:pPr>';
+    return '<w:tc>'+tcp+'<w:p>'+pp+'<w:r>'+
+      '<w:rPr>'+(bold?'<w:b/>':'')+
+        '<w:rFonts'+wa('ascii','Calibri')+wa('hAnsi','Calibri')+'/>'+
+        '<w:sz'+wa('val',sz)+'/>'+
+        '<w:szCs'+wa('val',sz)+'/>'+
+      '</w:rPr>'+
+      wt(txt)+
+    '</w:r></w:p></w:tc>';
+  }
+
+  function mrow(txt,fill,bold,sz){
+    return '<w:tr>'+cell(txt,tw,fill,bold,nc,sz||18)+'</w:tr>';
+  }
+
+  var bd='<w:top'+wa('val','single')+wa('sz','6')+wa('space','0')+wa('color','404040')+'/>'+
+         '<w:left'+wa('val','single')+wa('sz','6')+wa('space','0')+wa('color','404040')+'/>'+
+         '<w:bottom'+wa('val','single')+wa('sz','6')+wa('space','0')+wa('color','404040')+'/>'+
+         '<w:right'+wa('val','single')+wa('sz','6')+wa('space','0')+wa('color','404040')+'/>'+
+         '<w:insideH'+wa('val','single')+wa('sz','4')+wa('space','0')+wa('color','CCCCCC')+'/>'+
+         '<w:insideV'+wa('val','single')+wa('sz','4')+wa('space','0')+wa('color','CCCCCC')+'/>';
+
+  var tpr='<w:tblPr>'+
+    '<w:tblW'+wa('w',tw)+wa('type','dxa')+'/>'+
+    '<w:tblBorders>'+bd+'</w:tblBorders>'+
+    '<w:tblLayout'+wa('type','fixed')+'/>'+
+  '</w:tblPr>';
+
+  var tgrd='<w:tblGrid>'+
+    cws.map(function(w){return '<w:gridCol'+wa('w',w)+'/>';}).join('')+
+  '</w:tblGrid>';
+
+  var rows='';
+  var evLine=evName+(evMeta?' \u2013 '+evMeta.split('\u00b7')[0].trim():'');
+  rows+=mrow(evLine,'FFD503',true,21);
+  rows+=mrow(lSub(type),'FFD503',true,19);
+  rows+='<w:tr>'+cols.map(function(h,i){return cell(h,cws[i],'FFD503',true,0,18);}).join('')+'</w:tr>';
+
+  var cnt=0,ri=0;
+  function addSec(label,list){
+    if(!list.length)return;
+    rows+=mrow(label,'FFD503',true,18);
+    list.forEach(function(p){
+      cnt++;
+      var fill=(ri%2===0)?'FFFFFF':'F8F8F8';
+      var email=hasEmail?(p.isCCP?'\u2013':(p.email||'')):undefined;
+      var data=[String(cnt),p.imie,p.nazwisko,
+        (p.firma||'').substring(0,32),(p.branza||'').substring(0,35),(p.grupa||'').substring(0,14)];
+      if(hasEmail)data.push((email||'').substring(0,32));
+      rows+='<w:tr>'+data.map(function(v,i){return cell(v,cws[i],fill,false,0,17);}).join('')+'</w:tr>';
+      ri++;
+    });
+  }
+
+  addSec('Cz\u0142onkowie '+(ownGroup||'w\u0142asnej Grupy'),secs.wlasni);
+  addSec(lSecLabel(type),secs.inni);
+  addSec(lGostLabel(type),secs.goscie);
+  if(secs.part.length)addSec('Partnerzy',secs.part);
+  if(secs.obs.length)addSec('Obserwatorzy',secs.obs);
+
+  return '<w:tbl>'+tpr+tgrd+rows+'</w:tbl>';
+}
+
+async function genDOCX(type){
+  if(!P.length){alert('Wczytaj plik eventowy.');return;}
+  var buf=lhBuf;
+  if(!buf){try{var r=await fetch('./CC%20Papier%20firmowy%202025%20(3).docx');if(!r.ok)throw new Error();buf=await r.arrayBuffer();}catch(e){alert('Brak szablonu DOCX w repozytorium.');return;}}
+  try{
+    var zip=await JSZip.loadAsync(buf);
+    var doc=await zip.file('word/document.xml').async('string');
+    doc=doc.replace('<w:sectPr>',buildTable(type)+'<w:p/><w:sectPr>');
+    zip.file('word/document.xml',doc);
+    var out=await zip.generateAsync({type:'arraybuffer',compression:'DEFLATE'});
+    dl(new Blob([out],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}),lFname(type)+'.docx');
+  }catch(e){console.error(e);alert('Błąd DOCX: '+e.message);}
+}
+
+// ══ XLSX LIST ══
+function genXLSX(type){
+  if(!P.length){alert('Wczytaj plik eventowy.');return;}
+  var secs=getSecs(type),hasEmail=(type==='po_czl');
+  var cols=hasEmail?['Lp.','Imię','Nazwisko','Firma','Branża','Grupa','E-mail']:['Lp.','Imię','Nazwisko','Firma','Branża','Grupa'];
+  var cws=hasEmail?[5,12,15,22,22,10,28]:[5,13,16,25,30,13];
+  var wb=new ExcelJS.Workbook(),ws=wb.addWorksheet('Lista');
+  cws.forEach(function(w,i){ws.getColumn(i+1).width=w;});
+  var Y='FFFFD503',DA='FF404040',WH='FFFFFFFF',LG='FFF8F8F8',BO='FFBBBBBB';
+  function sc(cell,bg,bold,sz){var b={style:'thin',color:{argb:BO}};cell.font={name:'Calibri',bold:!!bold,size:sz||9,color:{argb:DA}};cell.alignment={horizontal:'center',vertical:'middle'};cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:bg||WH}};cell.border={left:b,right:b,top:b,bottom:b};}
+  var row=1;
+  ws.mergeCells(row,1,row,cols.length);sc(ws.getCell(row,1),Y,true,11);
+  ws.getCell(row,1).value=evName+(evMeta?' – '+evMeta.split('·')[0].trim():'');ws.getRow(row).height=20;row++;
+  ws.mergeCells(row,1,row,cols.length);sc(ws.getCell(row,1),Y,true,10);
+  ws.getCell(row,1).value=lSub(type);ws.getRow(row).height=17;row++;
+  cols.forEach(function(h,i){sc(ws.getCell(row,i+1),Y,true);ws.getCell(row,i+1).value=h;});ws.getRow(row).height=16;row++;
+  var cnt=0;
+  function addSec(label,list){if(!list.length)return;ws.mergeCells(row,1,row,cols.length);sc(ws.getCell(row,1),Y,true);ws.getCell(row,1).value=label;ws.getRow(row).height=15;row++;list.forEach(function(p){cnt++;var bg=(row%2===0)?LG:WH;var email=hasEmail?(p.isCCP?'–':(p.email||'')):undefined;var data=[cnt,p.imie,p.nazwisko,p.firma,p.branza,p.grupa];if(hasEmail)data.push(email);data.forEach(function(v,i){sc(ws.getCell(row,i+1),bg);ws.getCell(row,i+1).value=v||'';});ws.getRow(row).height=14;row++;});}
+  addSec('Członkowie '+(ownGroup||'własnej Grupy'),secs.wlasni);addSec(lSecLabel(type),secs.inni);addSec(lGostLabel(type),secs.goscie);if(secs.part.length)addSec('Partnerzy',secs.part);if(secs.obs.length)addSec('Obserwatorzy',secs.obs);
+  ws.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1};
+  wb.xlsx.writeBuffer().then(function(buf){dl(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),lFname(type)+'.xlsx');});
+}
+
+// ══ BAZA MAILINGOWA ══
+function genBaza(){
+  if(!P.length){alert('Wczytaj plik eventowy.');return;}
+  var wb=new ExcelJS.Workbook();
+  var Y='FFFFD503',DA='FF404040',WH='FFFFFFFF',LG='FFF5F5F5',BO='FFCCCCCC';
+  function mkTab(name,list){
+    var ws=wb.addWorksheet(name);
+    ws.getColumn(1).width=14;ws.getColumn(2).width=16;ws.getColumn(3).width=34;
+    var b={style:'thin',color:{argb:BO}};
+    function hc(ci,txt,hdr){var c=ws.getCell(1,ci);c.value=txt;c.font={name:'Calibri',bold:!!hdr,size:10,color:{argb:DA}};c.alignment={horizontal:'left',vertical:'middle'};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:hdr?Y:WH}};c.border={left:b,right:b,top:b,bottom:b};}
+    hc(1,'Imię',true);hc(2,'Nazwisko',true);hc(3,'E-mail',true);ws.getRow(1).height=18;
+    list.forEach(function(p,i){var bg=(i%2===0)?WH:LG;[p.imie,p.nazwisko,p.email].forEach(function(v,ci){var c=ws.getCell(i+2,ci+1);c.value=v||'';c.font={name:'Calibri',size:10,color:{argb:DA}};c.alignment={horizontal:'left',vertical:'middle'};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};c.border={left:b,right:b,top:b,bottom:b};});ws.getRow(i+2).height=15;});
+  }
+  var all=lSort(P.slice());
+  mkTab('Tydzień przed',all.filter(function(p){return p.wlasna||p.inna||p.isGosc||p.partner;}));
+  mkTab('Dzień przed',all.filter(function(p){return p.wlasna||((p.inna||p.isGosc||p.partner)&&p.potw);}));
+  mkTab('Podsumowanie Członkowie',all.filter(function(p){return(p.wlasna||p.inna||p.obs)&&p.obecny;}));
+  mkTab('Podsumowanie Goście',all.filter(function(p){return(p.isGosc||p.partner||p.isBNI)&&p.obecny;}));
+  wb.xlsx.writeBuffer().then(function(buf){dl(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'Baza mailingowa '+evName.replace('Spotkanie Grupy ','Spotkanie ')+'.xlsx');});
+}
+
+// ══ UI HELPERS ══
+function goTab(name,btn){document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});btn.classList.add('active');['lists','badge','x1','mailing'].forEach(function(n){document.getElementById('tab-'+n).style.display=n===name?'block':'none';});}
+function setF(f,btn){sCol=null;sDir=1;filt=f;document.querySelectorAll('#tab-lists .pill').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');renderList();}
+function setTyp(v){filtTyp=v;renderList();}
+function setDyr(v){filtDyr=v;renderList();}
+function populateSelects(){
+  // Populate directors dropdown from actual data
+  var dyrs=[...new Set(P.map(function(p){return p.dyrektor;}).filter(Boolean))].sort();
+  var sel=document.getElementById('sel-dyr');
+  if(!sel)return;
+  var cur=sel.value;
+  while(sel.options.length>1)sel.remove(1);
+  dyrs.forEach(function(d){
+    var o=document.createElement('option');
+    o.value=d;o.textContent=d+(dirMap[d]?' ('+dirMap[d]+')':'');
+    sel.appendChild(o);
+  });
+  if(cur)sel.value=cur;
+}
+function setBF(f,btn){bfilt=f;document.querySelectorAll('#tab-badge .pill').forEach(function(b){b.classList.remove('on');});btn.classList.add('on');renderBadge();}
+function noun(n,s1,s2,s5){if(n===1)return s1;if(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))return s2;return s5;}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escA(s){return String(s||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;');}
+// ══ 1x1 FILE NAME ══
+function x1FileName(name){
+  return name+' 1x1 '+evName;
+}
+
+// ══ 1x1 OOXML TABLE ══
+function buildX1Table(name){
+  var person=x1map[name];
+  if(!person)return'';
+  var inf=byName[name.toLowerCase()];
+  var mtgs=person.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');});
+
+  // Landscape A4 usable width: 16838 - 2*1134 = 14570 twips
+  var cws=[600,2800,3500,5000,2670]; // Lp|Osoba|Firma|Branża|Data
+  var tw=cws.reduce(function(a,b){return a+b;},0);
+
+  function wa(n,v){return ' w:'+n+'="'+v+'"';}
+  function cell(txt,w,fill,bold,span,sz,vmerge){
+    sz=sz||18;fill=fill||'FFFFFF';
+    var tcp='<w:tcPr>'+
+      '<w:tcW'+wa('w',w)+wa('type','dxa')+'/>'+
+      (span?'<w:gridSpan'+wa('val',span)+'/>':'')+
+      (vmerge==='start'?'<w:vMerge w:val="restart"/>':(vmerge==='cont'?'<w:vMerge/>':''))+
+      '<w:shd'+wa('val','clear')+wa('color','auto')+wa('fill',fill)+'/>'+
+      '<w:tcMar><w:top'+wa('w','60')+wa('type','dxa')+'/><w:left'+wa('w','108')+wa('type','dxa')+'/><w:bottom'+wa('w','60')+wa('type','dxa')+'/><w:right'+wa('w','108')+wa('type','dxa')+'/></w:tcMar>'+
+    '</w:tcPr>';
+    var pp='<w:pPr><w:jc'+wa('val','center')+'/>'+
+      '<w:spacing'+wa('before','0')+wa('after','0')+wa('line','240')+wa('lineRule','auto')+'/></w:pPr>';
+    var rp='<w:rPr>'+(bold?'<w:b/>':'')+
+      '<w:rFonts'+wa('ascii','Calibri')+wa('hAnsi','Calibri')+'/>'+
+      '<w:sz'+wa('val',sz)+'/><w:szCs'+wa('val',sz)+'/></w:rPr>';
+    return'<w:tc>'+tcp+'<w:p>'+pp+'<w:r>'+rp+
+      '<w:t xml:space="preserve">'+xesc(txt)+'</w:t></w:r></w:p></w:tc>';
+  }
+  function emptyCell(w,fill,vmerge){
+    return'<w:tc><w:tcPr><w:tcW'+wa('w',w)+wa('type','dxa')+'/>'+(vmerge==='cont'?'<w:vMerge/>':'')+
+      '<w:shd'+wa('val','clear')+wa('color','auto')+wa('fill',fill||'FFFFFF')+'/></w:tcPr>'+
+      '<w:p><w:pPr><w:jc w:val="center"/></w:pPr></w:p></w:tc>';
+  }
+
+  var bd='<w:top'+wa('val','single')+wa('sz','6')+wa('space','0')+wa('color','404040')+'/>'+
+         '<w:left'+wa('val','single')+wa('sz','6')+wa('space','0')+wa('color','404040')+'/>'+
+         '<w:bottom'+wa('val','single')+wa('sz','6')+wa('space','0')+wa('color','404040')+'/>'+
+         '<w:right'+wa('val','single')+wa('sz','6')+wa('space','0')+wa('color','404040')+'/>'+
+         '<w:insideH'+wa('val','single')+wa('sz','4')+wa('space','0')+wa('color','CCCCCC')+'/>'+
+         '<w:insideV'+wa('val','single')+wa('sz','4')+wa('space','0')+wa('color','CCCCCC')+'/>';
+
+  var tpr='<w:tblPr><w:tblW'+wa('w',tw)+wa('type','dxa')+'/><w:tblBorders>'+bd+'</w:tblBorders><w:tblLayout'+wa('type','fixed')+'/></w:tblPr>';
+  var tgrd='<w:tblGrid>'+cws.map(function(w){return'<w:gridCol'+wa('w',w)+'/>';}).join('')+'</w:tblGrid>';
+
+  var rows='';
+  // Header row 1: merged "Spotkania 1 na 1"
+  rows+='<w:tr>'+cell('Spotkania 1 na 1',tw,'FFD503',true,5,20)+'</w:tr>';
+  // Header row 2: column headers
+  var hdrs=['Lp.','Osoba','Firma','Branża','Data'];
+  rows+='<w:tr>'+hdrs.map(function(h,i){return cell(h,cws[i],'FFD503',true,0,18);}).join('')+'</w:tr>';
+
+  // Data date label
+  var evDate=evMeta?evMeta.split('\u00b7')[0].trim():'';var dateLabel=(evDate?evDate+' \u2014 ':'')+evName;
+
+  // Data rows with vertical merge on Date column
+  mtgs.forEach(function(m,i){
+    var pi=byName[m.partner.toLowerCase()];
+    var firm=pi?pi.firma:'';
+    var bran=pi?pi.branza:'';
+    var rowBg=(i%2===0)?'FFFFFF':'F8F8F8';
+    var dateCell=i===0
+      ? cell(dateLabel,cws[4],rowBg,false,0,17,'start')
+      : emptyCell(cws[4],rowBg,'cont');
+    rows+='<w:tr>'+
+      cell(String(i+1),cws[0],rowBg,false,0,17)+
+      cell(m.partner,cws[1],rowBg,false,0,17)+
+      cell(firm.substring(0,40),cws[2],rowBg,false,0,17)+
+      cell(bran.substring(0,60),cws[3],rowBg,false,0,17)+
+      dateCell+
+    '</w:tr>';
+  });
+
+  return'<w:tbl>'+tpr+tgrd+rows+'</w:tbl>';
+}
+
+// ══ 1x1 DOCX ══
+async function genX1DOCX(name){
+  if(!lhBuf){try{var r=await fetch('./CC%20Papier%20firmowy%202025%20(3).docx');if(!r.ok)throw new Error();lhBuf=await r.arrayBuffer();}catch(e){alert('Brak szablonu DOCX.');return;}}
+  try{
+    var zip=await JSZip.loadAsync(lhBuf);
+    var doc=await zip.file('word/document.xml').async('string');
+
+    // Switch to landscape
+    doc=doc.replace(/w:pgSz[^/]*\//,
+      'w:pgSz w:h="11906" w:w="16838" w:orient="landscape"/');
+
+    function wa(n,v){return' w:'+n+'="'+v+'"';}
+
+    // Build name heading paragraph
+    function para(txt,sz,bold,spacing){
+      return'<w:p><w:pPr><w:jc w:val="center"/><w:spacing'+wa('before',spacing||'120')+wa('after','80')+'/></w:pPr>'+
+        '<w:r><w:rPr>'+(bold?'<w:b/>':'')+
+          '<w:rFonts'+wa('ascii','Calibri')+wa('hAnsi','Calibri')+'/>'+
+          '<w:sz'+wa('val',sz)+'/><w:szCs'+wa('val',sz)+'/></w:rPr>'+
+        '<w:t xml:space="preserve">'+xesc(txt)+'</w:t></w:r></w:p>';
+    }
+
+    var inf=byName[name.toLowerCase()];
+    var nameStr=name+(inf&&inf.firma?' ('+inf.firma+')':'');
+    var content=para(nameStr,28,true,'200')+para('Spotkania 1 na 1',24,true,'60')+buildX1Table(name)+'<w:p/>';
+
+    doc=doc.replace('<w:sectPr>',content+'<w:sectPr>');
+    zip.file('word/document.xml',doc);
+    var out=await zip.generateAsync({type:'arraybuffer',compression:'DEFLATE'});
+    dl(new Blob([out],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}),x1FileName(name)+'.docx');
+  }catch(e){console.error(e);alert('Błąd DOCX: '+e.message);}
+}
+
+// ══ 1x1 PDF — via HTML print window ══
+function buildX1PrintHTML(name){
+  var person=x1map[name];if(!person)return'';
+  var inf=byName[name.toLowerCase()];
+  var mtgs=person.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');});
+  var evDate=evMeta?evMeta.split('\u00b7')[0].trim():'';
+  var dateLabel=(evDate?evDate+' \u2014 ':'')+evName;
+  var nameStr=name+(inf&&inf.firma?' ('+inf.firma+')':'');
+  var dataRows=mtgs.map(function(m,i){
+    var pi=byName[m.partner.toLowerCase()];
+    var bg=(i%2===0)?'#fff':'#f8f8f8';
+    return '<tr style="background:'+bg+'">'
+      +'<td style="width:40px;text-align:center">'+( i+1)+'</td>'
+      +'<td>'+esc(m.partner)+'</td>'
+      +'<td>'+esc(pi?pi.firma:'')+'</td>'
+      +'<td>'+esc(pi?pi.branza:'')+'</td>'
+      +(i===0?'<td rowspan="'+mtgs.length+'" style="text-align:center;vertical-align:middle;font-size:11px">'+esc(dateLabel)+'</td>':'')
+      +'</tr>';
+  }).join('');
+
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8">'
+    +'<style>'
+    +'*{margin:0;padding:0;box-sizing:border-box}'
+    +'body{font-family:Calibri,Arial,sans-serif;font-size:12px;color:#404040;padding:0}'
+    +'@page{size:A4 landscape;margin:15mm 15mm 20mm 15mm}'
+    +'@media print{body{padding:0}}'
+    +'.header{display:flex;align-items:center;margin-bottom:8px}'
+    +'.logo{height:40px;margin-right:20px}'
+    +'.yline{height:2px;background:#FFD503;margin-bottom:24px}'
+    +'.name{text-align:center;font-size:16pt;font-weight:700;margin-bottom:8px}'
+    +'.sub{text-align:center;font-size:13pt;font-weight:700;margin-bottom:16px}'
+    +'table{width:100%;border-collapse:collapse;border:1.5px solid #404040}'
+    +'th,td{border:1px solid #ccc;padding:5px 8px;text-align:center}'
+    +'.thd{background:#FFD503;color:#404040;font-weight:700;border:1px solid #999}'
+    +'.thdm{background:#FFD503;color:#404040;font-weight:700;text-align:center;font-size:12pt;border:1px solid #999}'
+    +'.wlc{position:fixed;bottom:10mm;left:15mm}'
+    +'</style></head><body>'
+    +'<div class="header"><img class="logo" src="'+CC_LOGO+'"></div>'
+    +'<div class="yline"></div>'
+    +'<div class="name">'+esc(nameStr)+'</div>'
+    +'<div class="sub">Spotkania 1 na 1</div>'
+    +'<table>'
+    +'<tr><th colspan="5" class="thdm">Spotkania 1 na 1</th></tr>'
+    +'<tr>'
+    +'<th class="thd" style="width:40px">Lp.</th>'
+    +'<th class="thd" style="width:180px">Osoba</th>'
+    +'<th class="thd" style="width:200px">Firma</th>'
+    +'<th class="thd">Bran\u017ca</th>'
+    +'<th class="thd" style="width:180px">Data</th>'
+    +'</tr>'
+    +dataRows
+    +'</table>'
+    +'<img src="'+WLC_LOGO+'" class="wlc" style="height:20px">'
+    +'</body></html>';
+}
+
+function buildX1PDFDef(name){
+  var person=x1map[name];if(!person)return null;
+  var inf=byName[name.toLowerCase()];
+  var mtgs=person.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');});
+  var evDate=evMeta?evMeta.split('\u00b7')[0].trim():'';
+  var dateLabel=(evDate?evDate+' \u2014 ':'')+evName;
+  var nameStr=name+(inf&&inf.firma?' ('+inf.firma+')':'');
+  var YELLOW='#FFD503',DARK='#404040';
+  var bodyRows=[];
+  mtgs.forEach(function(m,i){
+    var pi=byName[m.partner.toLowerCase()];
+    var bg=(i%2===0)?'#FFFFFF':'#F8F8F8';
+    var row=[
+      {text:String(i+1),alignment:'center',fontSize:9,fillColor:bg},
+      {text:m.partner||'',alignment:'center',fontSize:9,fillColor:bg},
+      {text:pi?pi.firma||'':'',alignment:'center',fontSize:9,fillColor:bg},
+      {text:pi?pi.branza||'':'',alignment:'center',fontSize:9,fillColor:bg}
+    ];
+    if(i===0)row.push({text:dateLabel,rowSpan:mtgs.length,alignment:'center',verticalAlignment:'center',fontSize:9,fillColor:'#FFFFFF'});
+    else row.push({});
+    bodyRows.push(row);
+  });
+  return{
+    pageOrientation:'landscape',pageSize:'A4',pageMargins:[40,20,40,50],
+    content:[
+      {image:CC_LOGO,width:140,margin:[0,0,0,4]},
+      {canvas:[{type:'line',x1:0,y1:0,x2:752,y2:0,lineWidth:2.5,lineColor:YELLOW}],margin:[0,0,0,18]},
+      {text:nameStr,fontSize:16,bold:true,alignment:'center',margin:[0,0,0,6],color:DARK},
+      {text:'Spotkania 1 na 1',fontSize:13,bold:true,alignment:'center',margin:[0,0,0,16],color:DARK},
+      {table:{
+        headerRows:2,widths:[28,140,160,260,120],
+        body:[
+          [{text:'Spotkania 1 na 1',colSpan:5,alignment:'center',bold:true,fontSize:11,fillColor:YELLOW,color:DARK,margin:[0,4,0,4]},{},{},{},{}],
+          [{text:'Lp.',bold:true,alignment:'center',fillColor:YELLOW,color:DARK,fontSize:9},{text:'Osoba',bold:true,alignment:'center',fillColor:YELLOW,color:DARK,fontSize:9},{text:'Firma',bold:true,alignment:'center',fillColor:YELLOW,color:DARK,fontSize:9},{text:'Bran\u017ca',bold:true,alignment:'center',fillColor:YELLOW,color:DARK,fontSize:9},{text:'Data',bold:true,alignment:'center',fillColor:YELLOW,color:DARK,fontSize:9}]
+        ].concat(bodyRows)
+      },layout:{hLineWidth:function(){return 0.5;},vLineWidth:function(){return 0.5;},hLineColor:function(){return'#CCCCCC';},vLineColor:function(){return'#CCCCCC';},paddingLeft:function(){return 4;},paddingRight:function(){return 4;},paddingTop:function(){return 3;},paddingBottom:function(){return 3;}}}
+    ],
+    footer:function(){return{image:WLC_LOGO,width:140,margin:[40,8,0,0]};},
+    defaultStyle:{font:'Roboto'}
+  };
 }
 
 function genX1PDF(name){
