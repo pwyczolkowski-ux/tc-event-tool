@@ -585,38 +585,47 @@ async function genBadgePPTX(){
     var pXml=await out.file('ppt/presentation.xml').async('string');
     var pRels=await out.file('ppt/_rels/presentation.xml.rels').async('string');
     var ct=await out.file('[Content_Types].xml').async('string');
-    var r1m=pRels.match(/Id="(rId[0-9]+)"[^>]*slides.slide1[.]xml/);
-    var rId1=r1m?r1m[1]:'rId2';
-    var s1m=pXml.match(/p:sldId id="([0-9]+)"/);
-    var sId1=s1m?parseInt(s1m[1]):295;
-    var allRIds=[...pRels.matchAll(/Id="rId([0-9]+)"/g)].map(function(m){return parseInt(m[1]);}).concat([100]);
-    var maxR=Math.max.apply(null,allRIds)+1;
-    var allSIds=[...pXml.matchAll(/p:sldId id="([0-9]+)"/g)].map(function(m){return parseInt(m[1]);}).concat([400]);
-    var maxS=Math.max.apply(null,allSIds)+1;
-    var nSlds='',nRels='',nCt='';
+
     var ST='http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide';
     var SC='application/vnd.openxmlformats-officedocument.presentationml.slide+xml';
+
+    // Znajdź max rId w całym pliku rels żeby uniknąć konfliktów
+    var allIds=[...pRels.matchAll(/Id="rId(\d+)"/g)].map(function(m){return parseInt(m[1]);});
+    var nextRId=Math.max.apply(null,allIds.concat([100]))+10;
+    var nextSldId=400;
+
+    // ── Usuń WSZYSTKIE istniejące referencje do slajdów z rels i Content_Types ──
+    // (template ma slide1/2/3 — zostawiamy tylko nasze nowo wygenerowane)
+    pRels=pRels.replace(/<Relationship[^>]*slides\/slide\d+\.xml[^>]*\/>/g,'');
+    ct=ct.replace(/<Override PartName="\/ppt\/slides\/slide\d+\.xml"[^>]*\/>/g,'');
+
+    // ── Generuj slajdy dla każdej osoby ──
+    var nSlds='',nRels='',nCt='';
+
     for(var i=0;i<list.length;i++){
       var p=list[i],t=getTpl(p),n=i+1;
+      if(!t)continue;
       out.file('ppt/slides/slide'+n+'.xml',fillB(t.xml,p));
       out.file('ppt/slides/_rels/slide'+n+'.xml.rels',t.rels);
-      var rId=i===0?rId1:('rId'+maxR++);
-      var sId=i===0?sId1:maxS++;
+      var rId='rId'+nextRId++;
+      var sId=nextSldId++;
       nSlds+='<p:sldId id="'+sId+'" r:id="'+rId+'"/>';
-      if(i>0){
-        nRels+='<Relationship Id="'+rId+'" Type="'+ST+'" Target="slides/slide'+n+'.xml"/>';
-        nCt+='<Override PartName="/ppt/slides/slide'+n+'.xml" ContentType="'+SC+'"/>';
-      }
+      nRels+='<Relationship Id="'+rId+'" Type="'+ST+'" Target="slides/slide'+n+'.xml"/>';
+      nCt+='<Override PartName="/ppt/slides/slide'+n+'.xml" ContentType="'+SC+'"/>';
     }
+
+    // ── Wstaw do XML ──
     pXml=pXml.replace(/<p:sldIdLst>[\s\S]*?<\/p:sldIdLst>/,'<p:sldIdLst>'+nSlds+'</p:sldIdLst>');
     pRels=pRels.replace('</Relationships>',nRels+'</Relationships>');
     ct=ct.replace('</Types>',nCt+'</Types>');
+
     out.file('ppt/presentation.xml',pXml);
     out.file('ppt/_rels/presentation.xml.rels',pRels);
     out.file('[Content_Types].xml',ct);
+
     var blob=await out.generateAsync({type:'blob',compression:'DEFLATE'});
     dl(blob,'Badge_'+evName.replace(/[^a-zA-Z0-9_ -]/g,'_')+'.pptx');
-  }catch(e){console.error(e);alert('Blad: '+e.message);}
+  }catch(e){console.error(e);alert('Błąd: '+e.message);}
 }
 
 function fillB(xml,p){
