@@ -629,17 +629,19 @@ async function genBadgePPTX(){
 }
 
 function fillB(xml,p){
-  return xml
-    .replace(/\{\{Imi(?:ę|e)\}\}/g,   xe(p.imie))
-    .replace(/\{\{Nazwisko\}\}/g,       xe(p.nazwisko))
-    .replace(/\{\{Firma\}\}/g,          xe(p.firma))
-    .replace(/\{\{Bran(?:ż|z)a\}\}/g,  xe(p.branza))
-    .replace(/\{\{Grupa\}\}/g,          xe(p.grupa))
-    .replace(/\{\{imię\}\}/g,           xe(p.imie))
-    .replace(/\{\{nazwisko\}\}/g,       xe(p.nazwisko))
-    .replace(/\{\{firma\}\}/g,          xe(p.firma))
-    .replace(/\{\{branża\}\}/g,         xe(p.branza))
-    .replace(/\{\{grupa\}\}/g,          xe(p.grupa));
+  // Universal: match any {{...}} and map by normalized key — robust for all encodings
+  return xml.replace(/\{\{([^}]+)\}\}/g,function(match,key){
+    var k=key.trim().toLowerCase()
+      .replace(/\u0105/g,'a').replace(/\u0107/g,'c').replace(/\u0119/g,'e')
+      .replace(/\u0142/g,'l').replace(/\u0144/g,'n').replace(/\u00f3/g,'o')
+      .replace(/\u015b/g,'s').replace(/\u017a/g,'z').replace(/\u017c/g,'z');
+    if(k==='imie'||k==='imi\u0119')     return xe(p.imie);
+    if(k==='nazwisko')                   return xe(p.nazwisko);
+    if(k==='firma'||k==='nazwa firmy')   return xe(p.firma);
+    if(k.startsWith('bran'))             return xe(p.branza);
+    if(k==='grupa')                      return xe(p.grupa);
+    return match; // leave unknown placeholders as-is
+  });
 }
 
 function xe(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');}
