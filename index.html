@@ -241,8 +241,7 @@ body.pb #pax{display:none!important}
     <div id="tab-x1" style="display:none">
       <div class="np" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <span style="font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:.1em;color:#555">Zestawienia 1×1</span>
-        <button class="btn btn-n btn-sm" onclick="printAllX1()">Drukuj wszystkie</button>
-        <button class="btn btn-o btn-sm" onclick="genAllX1ZIP()">Pobierz ZIP</button>
+        <button class="btn btn-o btn-sm" onclick="genAllX1ZIP()">Pobierz ZIP (DOCX + PDF)</button>
       </div>
       <div class="xl">
         <div class="xs">
@@ -380,7 +379,16 @@ function parseParams(rows){
   rows.forEach(function(r){
     var k=String(r[1]||'').toLowerCase(),v=String(r[2]||'');
     if(k.includes('nazwa'))evName=v;
-    if(k.includes('data')&&r[2]){try{date=r[2] instanceof Date?r[2].toLocaleDateString('pl-PL'):String(r[2]).substring(0,10);}catch(e){date=String(r[2]);}}
+    if(k.includes('data')&&r[2]){
+      var rv=r[2];
+      if(typeof rv==='number'){
+        try{var xd=XLSX.SSF.parse_date_code(rv);date=p2(xd.d)+'.'+p2(xd.m)+'.'+xd.y;}catch(e){date='';}
+      }else if(rv instanceof Date){
+        date=p2(rv.getDate())+'.'+p2(rv.getMonth()+1)+'.'+rv.getFullYear();
+      }else{
+        var ds=String(rv);date=ds.length>=10?ds.substring(0,10).replace(/-/g,'.'):ds;
+      }
+    }
     if(k.includes('miasto'))miasto=v;
     if(k.includes('hotel')||k.includes('miejsce'))hotel=v;
     if(k.includes('grupa'))grupa=v;
@@ -625,12 +633,29 @@ function selX1(name){selPerson=name;renderX1(document.getElementById('xsi').valu
 function renderX1det(name){
   var p=x1map[name],inf=byName[name.toLowerCase()],el=document.getElementById('xd');if(!p)return;
   var tot=p.mtgs.reduce(function(s,m){return s+(parseInt(m.dur)||0);},0);
-  var rows=p.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');}).map(function(m,i){var pi=byName[m.partner.toLowerCase()];var ts=m.start?(m.start+(m.end?'–'+m.end:'')):'—';return'<div class="xmr"><div class="xmt">'+esc(ts)+'</div><div><div class="xmn">'+(i+1)+'. '+esc(m.partner)+'</div><div class="xmd">'+esc(pi?[pi.firma,pi.branza].filter(Boolean).join(' · '):'')+'</div></div><div class="xdu">'+esc(m.dur?m.dur+' min':'—')+'</div></div>';}).join('');
-  el.innerHTML='<div class="xdh"><div class="xdhn">'+esc(name)+'</div><div class="xdhf">'+esc(inf?inf.firma||'':'')+'</div><div class="xdhs"><span>'+p.mtgs.length+'</span> spotkań'+(tot?' &nbsp;·&nbsp; <span>'+tot+'</span> min':'')+'</div></div><div class="xm">'+rows+'</div><div class="xft np"><button class="btn btn-o btn-sm" onclick="printOneX1(\''+escA(name)+'\')">Drukuj</button>'+
-    '<button class="btn btn-n btn-sm" onclick="genX1DOCX(\\\''+escA(name)+'\\\')">DOCX</button>'+
-    '<button class="btn btn-n btn-sm" onclick="genX1PDF(\\\''+escA(name)+'\\\')">PDF</button>'+
-  '</div>';
+  var rows=p.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');}).map(function(m,i){
+    var pi=byName[m.partner.toLowerCase()];
+    var ts=m.start?(m.start+(m.end?'\u2013'+m.end:'')):'—';
+    return'<div class="xmr">'+
+      '<div class="xmt">'+esc(ts)+'</div>'+
+      '<div><div class="xmn">'+(i+1)+'. '+esc(m.partner)+'</div>'+
+      '<div class="xmd">'+esc(pi?[pi.firma,pi.branza].filter(Boolean).join(' \u00b7 '):'')+'</div></div>'+
+      '<div class="xdu">'+esc(m.dur?m.dur+' min':'\u2014')+'</div>'+
+    '</div>';
+  }).join('');
+  el.innerHTML=
+    '<div class="xdh">'+
+      '<div class="xdhn">'+esc(name)+'</div>'+
+      '<div class="xdhf">'+esc(inf?inf.firma||'':'')+'</div>'+
+      '<div class="xdhs"><span>'+p.mtgs.length+'</span> spotka\u0144'+(tot?' \u00a0\u00b7\u00a0 <span>'+tot+'</span> min':'')+'</div>'+
+    '</div>'+
+    '<div class="xm">'+rows+'</div>'+
+    '<div class="xft np">'+
+      '<button class="btn btn-n btn-sm" onclick="genX1DOCX(selPerson)">DOCX</button>'+
+      '<button class="btn btn-n btn-sm" onclick="genX1PDF(selPerson)">PDF</button>'+
+    '</div>';
 }
+
 function x1page(name){var p=x1map[name],inf=byName[name.toLowerCase()];if(!p)return'';var tot=p.mtgs.reduce(function(s,m){return s+(parseInt(m.dur)||0);},0);var rows=p.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');}).map(function(m,i){var pi=byName[m.partner.toLowerCase()];return'<div class="xpm"><div class="xpmt">'+esc(m.start||'—')+'</div><div><div class="xpmn">'+(i+1)+'. '+esc(m.partner)+'</div><div class="xpmi">'+esc(pi?[pi.firma,pi.branza].filter(Boolean).join(' · '):'')+'</div></div><div class="xpmd">'+esc(m.dur?m.dur+' min':'')+'</div></div>';}).join('');return'<div class="xpp"><div class="xph"><div class="xpn">'+esc(name)+(inf&&inf.firma?' · '+esc(inf.firma):'')+'</div><div class="xpe">'+esc(evName)+' · '+esc(evMeta)+'</div></div>'+rows+(tot?'<div class="xpf">Łącznie: '+tot+' minut</div>':'')+'</div>';}
 function printOneX1(name){document.getElementById('pax').innerHTML=x1page(name);window.print();}
 function printAllX1(){document.getElementById('pax').innerHTML=x1list.map(function(p){return x1page(p.name);}).join('');window.print();}
@@ -883,7 +908,7 @@ function buildX1Table(name){
   rows+='<w:tr>'+hdrs.map(function(h,i){return cell(h,cws[i],'FFD503',true,0,18);}).join('')+'</w:tr>';
 
   // Data date label
-  var dateLabel=evMeta?evMeta.split('\u00b7')[0].trim()+' '+evName:evName;
+  var evDate=evMeta?evMeta.split('\u00b7')[0].trim():'';var dateLabel=(evDate?evDate+' \u2014 ':'')+evName;
 
   // Data rows with vertical merge on Date column
   mtgs.forEach(function(m,i){
@@ -952,7 +977,7 @@ function genX1PDF(name){
     var margin=15,pw=297,ph=210;
     var inf=byName[name.toLowerCase()];
     var mtgs=person.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');});
-    var dateLabel=evMeta?evMeta.split('\u00b7')[0].trim()+' '+evName:evName;
+    var evDate=evMeta?evMeta.split('\u00b7')[0].trim():'';var dateLabel=(evDate?evDate+' \u2014 ':'')+evName;
 
     // Build rows with merged date cell
     var body=[];
@@ -1056,7 +1081,7 @@ function genX1PDFBuffer(name,jsPDF){
   var margin=15,pw=297,ph=210;
   var inf=byName[name.toLowerCase()];
   var mtgs=person.mtgs.slice().sort(function(a,b){return(a.start||'').localeCompare(b.start||'');});
-  var dateLabel=evMeta?evMeta.split('\u00b7')[0].trim()+' '+evName:evName;
+  var evDate=evMeta?evMeta.split('\u00b7')[0].trim():'';var dateLabel=(evDate?evDate+' \u2014 ':'')+evName;
   var body=[];
   mtgs.forEach(function(m,i){
     var pi=byName[m.partner.toLowerCase()];
