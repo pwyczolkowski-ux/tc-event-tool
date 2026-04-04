@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 <style>
 :root{--navy:#121635;--red:#DC143C;--white:#FFFFFF;--g1:#F5F5F5;--g2:#E8E8E8;--g3:#AAAAAA;--g4:#555555;--font:'Roboto',Arial,sans-serif}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -210,6 +211,7 @@ body.print-badge #print-all-x1{display:none!important}
       <button class="tab active" onclick="switchTab('lists',this)">Listy uczestników</button>
       <button class="tab" onclick="switchTab('badge',this)">Badge</button>
       <button class="tab" onclick="switchTab('x1',this)">Zestawienia 1×1</button>
+      <button class="tab" onclick="switchTab('listy',this)">Listy mailingowe</button>
     </div>
 
     <div id="tab-lists">
@@ -234,7 +236,49 @@ body.print-badge #print-all-x1{display:none!important}
       <div id="badge-container"></div>
     </div>
 
-    <div id="tab-x1" style="display:none">
+    <div id="tab-listy" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px" class="no-print">
+
+        <div style="border:1px solid var(--g2);padding:24px">
+          <div style="font-size:10px;font-weight:400;text-transform:uppercase;letter-spacing:.1em;color:var(--g4);margin-bottom:6px;display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;background:var(--yellow,#FFD503);display:inline-block"></span>Tydzień przed</div>
+          <div style="font-size:12px;font-weight:300;color:var(--g4);margin-bottom:16px">Wszyscy Członkowie własnej Grupy + potwierdzeni Członkowie innych Grup, Goście, Partnerzy, Obserwatorzy</div>
+          <button class="btn btn-navy btn-sm" onclick="generateList('tydzien')">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Generuj XLSX
+          </button>
+        </div>
+
+        <div style="border:1px solid var(--g2);padding:24px">
+          <div style="font-size:10px;font-weight:400;text-transform:uppercase;letter-spacing:.1em;color:var(--g4);margin-bottom:6px;display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;background:var(--yellow,#FFD503);display:inline-block"></span>Dzień przed</div>
+          <div style="font-size:12px;font-weight:300;color:var(--g4);margin-bottom:16px">Wszyscy Członkowie własnej Grupy + potwierdzeni Członkowie innych Grup, Goście, Partnerzy, Obserwatorzy</div>
+          <button class="btn btn-navy btn-sm" onclick="generateList('dzien')">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Generuj XLSX
+          </button>
+        </div>
+
+        <div style="border:1px solid var(--g2);padding:24px">
+          <div style="font-size:10px;font-weight:400;text-transform:uppercase;letter-spacing:.1em;color:var(--g4);margin-bottom:6px;display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;background:var(--red);display:inline-block"></span>Dzień po — Członkowie</div>
+          <div style="font-size:12px;font-weight:300;color:var(--g4);margin-bottom:16px">Obecni Członkowie, Goście, Partnerzy + kolumna E-mail (CC+ bez emaila)</div>
+          <button class="btn btn-navy btn-sm" onclick="generateList('po_czlonkowie')">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Generuj XLSX
+          </button>
+        </div>
+
+        <div style="border:1px solid var(--g2);padding:24px">
+          <div style="font-size:10px;font-weight:400;text-transform:uppercase;letter-spacing:.1em;color:var(--g4);margin-bottom:6px;display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;background:var(--red);display:inline-block"></span>Dzień po — Goście</div>
+          <div style="font-size:12px;font-weight:300;color:var(--g4);margin-bottom:16px">Obecni Członkowie, Goście, Partnerzy, Obserwatorzy — bez kolumny E-mail</div>
+          <button class="btn btn-navy btn-sm" onclick="generateList('po_goscie')">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Generuj XLSX
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+        <div id="tab-x1" style="display:none">
       <div class="no-print" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <span style="font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:.1em;color:#555;display:flex;align-items:center;gap:10px"><span style="display:inline-block;width:8px;height:8px;background:var(--red)"></span>Zestawienia 1×1</span>
         <button class="btn btn-navy btn-sm" onclick="printAll1x1()">Drukuj wszystkie</button>
@@ -271,9 +315,10 @@ body.print-badge #print-all-x1{display:none!important}
 <div id="print-all-x1" style="display:none"></div>
 
 <script>
-var C={IMIE:1,NAZWISKO:2,GRUPA:5,FIRMA:6,BRANZA:7,SKALA:8,DYREKTOR:9,EMAIL:10,ROLA:14,POTW:37,OBECNY:38,CC:39,CCP:40,BNI:41,GOSC:42};
+var C={IMIE:1,NAZWISKO:2,GRUPA:5,FIRMA:6,BRANZA:7,SKALA:8,DYREKTOR:9,EMAIL:10,ROLA:14,POTW:37,OBECNY:38,CC:39,CCP:40,BNI:41,GOSC:42,OBSERWATOR:43,WLASNA:44,INNA:45,PARTNER:46};
 var participants=[],meetings=[],lookupByName={},x1Map={},x1List=[],selectedPerson=null;
 var directorMap={};
+var ownGroupName='';
 var eventName='',eventMeta='';
 var currentFilter='all',badgeFilter='all';
 
@@ -427,7 +472,7 @@ function resetFile(){
   document.getElementById('event-banner').style.display='none';
   document.getElementById('app-content').style.display='none';
   document.getElementById('header-event-name').textContent='';
-  participants=[];meetings=[];selectedPerson=null;
+  participants=[];meetings=[];selectedPerson=null;ownGroupName='';
 }
 function showError(msg){var el=document.getElementById('error-bar');el.textContent=msg;el.classList.add('show')}
 function hideError(){document.getElementById('error-bar').classList.remove('show')}
@@ -477,9 +522,12 @@ function parseParticipants(rows){
       branza:(r[C.BRANZA]||'').toString(),skala:(r[C.SKALA]||'').toString(),
       dyrektor:(r[C.DYREKTOR]||'').toString(),email:(r[C.EMAIL]||'').toString(),
       rola:(r[C.ROLA]||'').toString(),
+      wlasna:isTrue(r[C.WLASNA]),innaGrupa:isTrue(r[C.INNA]),
+      obserwator:isTrue(r[C.OBSERWATOR]),partner:isTrue(r[C.PARTNER]),
       potwierdzony:isTrue(r[C.POTW]),obecny:isTrue(r[C.OBECNY]),
       isCC:isTrue(r[C.CC]),isCCP:isTrue(r[C.CCP]),isBNI:isTrue(r[C.BNI]),isGosc:isTrue(r[C.GOSC])};
     participants.push(p);lookupByName[p.pelne.toLowerCase()]=p;
+    if(p.wlasna&&!ownGroupName) ownGroupName=p.grupa;
   });
 }
 function parseMeetings(rows){
@@ -697,13 +745,214 @@ function exportCSV(){
 // ════ UI ════
 function switchTab(name,btn){
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});btn.classList.add('active');
-  ['lists','badge','x1'].forEach(function(n){document.getElementById('tab-'+n).style.display=n===name?'block':'none'});
+  ['lists','badge','x1','listy'].forEach(function(n){document.getElementById('tab-'+n).style.display=n===name?'block':'none'});
 }
 function setFilter(f,btn){currentFilter=f;document.querySelectorAll('#tab-lists .filter-bar .pill').forEach(function(b){b.classList.remove('on')});btn.classList.add('on');renderListTab();}
 function setBadgeFilter(f,btn){badgeFilter=f;document.querySelectorAll('#tab-badge .filter-bar .pill').forEach(function(b){b.classList.remove('on')});btn.classList.add('on');renderBadgeView();}
 function noun(n,s1,s2,s5){if(n===1)return s1;if(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))return s2;return s5}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function escAttr(s){return String(s||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;')}
+
+// ════ GENERATE MAILING LIST XLSX ════
+
+var LCOLORS={
+  navy:'FF121635', red:'FFDC143C', yellow:'FFFFD503',
+  white:'FFFFFFFF', lightGray:'FFF5F5F5', midGray:'FFE8E8E8', textGray:'FF555555'
+};
+
+function groupSortKey(grupaStr){
+  var g=grupaStr||'';
+  if(g.startsWith('CC+1'))return'00';if(g.startsWith('CC+2'))return'01';
+  if(g.startsWith('CC+'))return'02';if(g.startsWith('BNI'))return'ZZ';
+  var m=g.match(/CC(\d+)/);return m?('10'+m[1].padStart(3,'0')):('50'+g);
+}
+
+function sortedList(arr){
+  return arr.slice().sort(function(a,b){
+    var ga=groupSortKey(a.grupa),gb=groupSortKey(b.grupa);
+    if(ga!==gb) return ga.localeCompare(gb);
+    return a.nazwisko.localeCompare(b.nazwisko,'pl');
+  });
+}
+
+function getListData(type){
+  var all=participants;
+  var wlasni=[], inni=[], goscie=[], partnerzy=[], obserwatorzy=[];
+
+  all.forEach(function(p){
+    var potw=p.potwierdzony, obec=p.obecny;
+    if(type==='tydzien'||type==='dzien'){
+      if(p.wlasna) wlasni.push(p);
+      else if(p.innaGrupa&&potw) inni.push(p);
+      else if(p.isGosc&&potw) goscie.push(p);
+      else if(p.partner&&potw) partnerzy.push(p);
+      else if(p.obserwator&&potw) obserwatorzy.push(p);
+    } else {
+      if(!obec) return;
+      if(p.wlasna) wlasni.push(p);
+      else if(p.innaGrupa) inni.push(p);
+      else if(p.isGosc) goscie.push(p);
+      else if(p.partner) partnerzy.push(p);
+      else if(p.obserwator) obserwatorzy.push(p);
+    }
+  });
+
+  return {
+    wlasni: sortedList(wlasni),
+    inni: sortedList(inni),
+    goscie: sortedList(goscie),
+    partnerzy: sortedList(partnerzy),
+    obserwatorzy: sortedList(obserwatorzy)
+  };
+}
+
+async function generateList(type){
+  if(!participants.length){alert('Najpierw wczytaj plik eventowy.');return}
+  if(typeof ExcelJS==='undefined'){alert('Biblioteka ExcelJS nie załadowana.');return}
+
+  var data=getListData(type);
+  var withEmail=(type==='po_czlonkowie');
+  var cols=withEmail
+    ?['Imię','Nazwisko','Firma','Branża','Grupa','E-mail']
+    :['Imię','Nazwisko','Firma','Branża','Grupa'];
+  var numCols=cols.length;
+
+  // Nazwa pliku
+  var titles={
+    tydzien:'Lista Członków i potwierdzonych Gości',
+    dzien:'Lista Członków i potwierdzonych Gości',
+    po_czlonkowie:'Lista Uczestników – Członkowie',
+    po_goscie:'Lista Uczestników – Goście'
+  };
+  var suffixes={tydzien:'',dzien:'',po_czlonkowie:' – Członkowie',po_goscie:' – Goście'};
+  var listTitle=titles[type];
+  var eventShort=eventName.replace(/^Spotkanie Grupy /,'Spotkanie ').replace(/^Spotkanie /,'Spotkanie ');
+  var fileName=listTitle+' '+eventShort;
+
+  var wb=new ExcelJS.Workbook();
+  wb.creator='the company.';
+  wb.created=new Date();
+  var ws=wb.addWorksheet('Lista');
+
+  var lastCol=numCols;
+
+  // Helper: styl komórki
+  function styleCell(cell,opts){
+    if(opts.bgColor) cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:opts.bgColor}};
+    cell.font={name:'Calibri',size:opts.size||10,bold:!!opts.bold,color:{argb:opts.color||LCOLORS.navy}};
+    cell.alignment={horizontal:opts.align||'center',vertical:'middle',wrapText:!!opts.wrap};
+    if(opts.border){
+      cell.border={bottom:{style:'thin',color:{argb:LCOLORS.midGray}}};
+    }
+  }
+
+  // ROW 1 — Logo pasek (żółty)
+  ws.mergeCells(1,1,1,lastCol);
+  var r1=ws.getCell(1,1);
+  r1.value='the company.   ·   Corporate Connections';
+  styleCell(r1,{bgColor:LCOLORS.yellow,color:LCOLORS.navy,size:11,bold:true});
+  ws.getRow(1).height=22;
+
+  // ROW 2 — Tytuł listy (granat)
+  ws.mergeCells(2,1,2,lastCol);
+  var r2=ws.getCell(2,1);
+  r2.value=listTitle;
+  styleCell(r2,{bgColor:LCOLORS.navy,color:LCOLORS.white,size:13,bold:true});
+  ws.getRow(2).height=26;
+
+  // ROW 3 — Nazwa wydarzenia
+  ws.mergeCells(3,1,3,lastCol);
+  var r3=ws.getCell(3,1);
+  r3.value=eventName+(eventMeta?' · '+eventMeta:'');
+  styleCell(r3,{bgColor:'FF1E2547',color:LCOLORS.white,size:10});
+  ws.getRow(3).height=18;
+
+  // ROW 4 — pusta (separator)
+  ws.mergeCells(4,1,4,lastCol);
+  ws.getCell(4,1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFE8EAF6'}};
+  ws.getRow(4).height=6;
+
+  // ROW 5 — Nagłówki kolumn
+  cols.forEach(function(h,i){
+    var cell=ws.getCell(5,i+1);
+    cell.value=h;
+    styleCell(cell,{bgColor:LCOLORS.navy,color:LCOLORS.white,size:10,bold:true});
+    cell.border={bottom:{style:'medium',color:{argb:LCOLORS.red}},top:{style:'thin',color:{argb:LCOLORS.navy}}};
+  });
+  ws.getRow(5).height=20;
+
+  // Dodaj sekcję do arkusza
+  var rowIdx=6;
+  function addSection(label,list){
+    if(!list.length) return;
+    // Nagłówek sekcji
+    ws.mergeCells(rowIdx,1,rowIdx,lastCol);
+    var sc=ws.getCell(rowIdx,1);
+    sc.value=label+' ('+list.length+')';
+    sc.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFE8EAF6'}};
+    sc.font={name:'Calibri',size:9,bold:true,italic:true,color:{argb:LCOLORS.textGray}};
+    sc.alignment={horizontal:'left',vertical:'middle'};
+    ws.getRow(rowIdx).height=16;
+    rowIdx++;
+
+    list.forEach(function(p,i){
+      var isEven=(i%2===0);
+      var bg=isEven?LCOLORS.white:LCOLORS.lightGray;
+      var rowData=[p.imie,p.nazwisko,p.firma,p.branza,p.grupa];
+      if(withEmail) rowData.push(p.isCCP?'–':p.email);
+
+      rowData.forEach(function(val,ci){
+        var cell=ws.getCell(rowIdx,ci+1);
+        cell.value=val||'';
+        cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};
+        cell.font={name:'Calibri',size:10,color:{argb:LCOLORS.navy}};
+        cell.alignment={horizontal:'center',vertical:'middle'};
+        cell.border={bottom:{style:'hair',color:{argb:LCOLORS.midGray}}};
+      });
+      ws.getRow(rowIdx).height=18;
+      rowIdx++;
+    });
+    // Separator po sekcji
+    ws.mergeCells(rowIdx,1,rowIdx,lastCol);
+    ws.getCell(rowIdx,1).fill={type:'pattern',pattern:'solid',fgColor:{argb:LCOLORS.midGray}};
+    ws.getRow(rowIdx).height=3;
+    rowIdx++;
+  }
+
+  addSection('Członkowie '+(ownGroupName||'Grupy'), data.wlasni);
+  if(data.inni.length) addSection('Członkowie innych Grup', data.inni);
+  if(data.goscie.length) addSection('Goście', data.goscie);
+  if(data.partnerzy.length) addSection('Partnerzy', data.partnerzy);
+  if(data.obserwatorzy.length) addSection('Obserwatorzy', data.obserwatorzy);
+
+  // Podsumowanie
+  var totalAll=data.wlasni.length+data.inni.length+data.goscie.length+data.partnerzy.length+data.obserwatorzy.length;
+  ws.mergeCells(rowIdx,1,rowIdx,lastCol);
+  var sumCell=ws.getCell(rowIdx,1);
+  sumCell.value='Łącznie: '+totalAll+' osób';
+  sumCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:LCOLORS.yellow}};
+  sumCell.font={name:'Calibri',size:10,bold:true,color:{argb:LCOLORS.navy}};
+  sumCell.alignment={horizontal:'right',vertical:'middle'};
+  sumCell.border={top:{style:'thin',color:{argb:LCOLORS.navy}}};
+  ws.getRow(rowIdx).height=18;
+
+  // Szerokości kolumn
+  var widths=withEmail?[14,18,28,22,14,32]:[14,18,28,22,14];
+  widths.forEach(function(w,i){ws.getColumn(i+1).width=w});
+
+  // Drukowanie: orientacja pozioma, dopasowanie do strony
+  ws.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0,paperSize:9};
+
+  // Generuj i pobierz
+  var buf=await wb.xlsx.writeBuffer();
+  var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download=fileName+'.xlsx';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 // alias dla modalu
 function openModal(pelne){openModalFn(pelne)}
 function openModalFn(pelne){
