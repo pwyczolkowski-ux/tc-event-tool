@@ -619,7 +619,20 @@ async function genBadgePPTX(){
   }catch(e){console.error(e);alert('Blad: '+e.message);}
 }
 
-function fillB(xml,p){return xml.replace(/\{\{imię\}\}/g,xe(p.imie)).replace(/\{\{nazwisko\}\}/g,xe(p.nazwisko)).replace(/\{\{firma\}\}/g,xe(p.firma)).replace(/\{\{branża\}\}/g,xe(p.branza)).replace(/\{\{grupa\}\}/g,xe(p.grupa));}
+function fillB(xml,p){
+  return xml
+    .replace(/\{\{Imi(?:ę|e)\}\}/g,   xe(p.imie))
+    .replace(/\{\{Nazwisko\}\}/g,       xe(p.nazwisko))
+    .replace(/\{\{Firma\}\}/g,          xe(p.firma))
+    .replace(/\{\{Bran(?:ż|z)a\}\}/g,  xe(p.branza))
+    .replace(/\{\{Grupa\}\}/g,          xe(p.grupa))
+    .replace(/\{\{imię\}\}/g,           xe(p.imie))
+    .replace(/\{\{nazwisko\}\}/g,       xe(p.nazwisko))
+    .replace(/\{\{firma\}\}/g,          xe(p.firma))
+    .replace(/\{\{branża\}\}/g,         xe(p.branza))
+    .replace(/\{\{grupa\}\}/g,          xe(p.grupa));
+}
+
 function xe(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');}
 
 // ══ 1x1 ══
