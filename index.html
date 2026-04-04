@@ -698,41 +698,37 @@ function genX1PDF(name){
 
 async function genAllX1ZIP(){
   if(!x1list.length){alert('Brak danych spotkań.');return;}
+  if(!lhBuf){try{var r=await fetch('./CC%20Papier%20firmowy%202025%20(3).docx');if(!r.ok)throw new Error();lhBuf=await r.arrayBuffer();}catch(e){alert('Brak szablonu DOCX w repozytorium.');return;}}
+
   var zip=new JSZip();
   var total=x1list.length,done=0;
   var btn=document.querySelector('[onclick="genAllX1ZIP()"]');
   if(btn){btn.disabled=true;btn.textContent='Generuję 0/'+total+'...';}
 
+  function mkPara3(txt,sz,bold){
+    return'<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="120" w:after="80"/></w:pPr>'+
+      '<w:r><w:rPr>'+(bold?'<w:b/>':'')+
+      '<w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/>'+
+      '<w:sz w:val="'+sz+'"/><w:szCs w:val="'+sz+'"/></w:rPr>'+
+      '<w:t xml:space="preserve">'+xesc(txt)+'</w:t></w:r></w:p>';
+  }
+
   for(var i=0;i<x1list.length;i++){
     var name=x1list[i].name;
     var fname=x1FileName(name);
+    var inf2=byName[name.toLowerCase()];
+    var nStr=name+(inf2&&inf2.firma?' ('+inf2.firma+')':'');
 
-    // ── DOCX ──
+    // ── DOCX — zawsze slice(0) żeby nie zużywać buffera ──
     try{
-      if(!lhBuf){
-        var lr=await fetch('./CC%20Papier%20firmowy%202025%20(3).docx');
-        if(lr.ok)lhBuf=await lr.arrayBuffer();
-      }
-      if(lhBuf){
-        var zp=await JSZip.loadAsync(lhBuf);
-        var d=await zp.file('word/document.xml').async('string');
-        d=d.replace(/w:pgSz[^/]*\//,'w:pgSz w:h="11906" w:w="16838" w:orient="landscape"/');
-        var inf2=byName[name.toLowerCase()];
-        var nStr=name+(inf2&&inf2.firma?' ('+inf2.firma+')':'');
-        function wa3(n,v){return' w:'+n+'="'+v+'"';}
-        function par3(txt,sz,bold){
-          return'<w:p><w:pPr><w:jc w:val="center"/><w:spacing'+wa3('before','120')+wa3('after','80')+'/></w:pPr>'+
-            '<w:r><w:rPr>'+(bold?'<w:b/>':'')+
-            '<w:rFonts'+wa3('ascii','Calibri')+wa3('hAnsi','Calibri')+'/>'+
-            '<w:sz'+wa3('val',sz)+'/><w:szCs'+wa3('val',sz)+'/></w:rPr>'+
-            '<w:t xml:space="preserve">'+xesc(txt)+'</w:t></w:r></w:p>';
-        }
-        var cnt=par3(nStr,28,true)+par3('Spotkania 1 na 1',24,true)+buildX1Table(name)+'<w:p/>';
-        d=d.replace('<w:sectPr>',cnt+'<w:sectPr>');
-        zp.file('word/document.xml',d);
-        var docBuf=await zp.generateAsync({type:'arraybuffer',compression:'DEFLATE'});
-        zip.file(fname+'.docx',docBuf);
-      }
+      var zp=await JSZip.loadAsync(lhBuf.slice(0));
+      var d=await zp.file('word/document.xml').async('string');
+      d=d.replace(/w:pgSz[^/]*\//,'w:pgSz w:h="11906" w:w="16838" w:orient="landscape"/');
+      var cnt=mkPara3(nStr,28,true)+mkPara3('Spotkania 1 na 1',24,true)+buildX1Table(name)+'<w:p/>';
+      d=d.replace('<w:sectPr>',cnt+'<w:sectPr>');
+      zp.file('word/document.xml',d);
+      var docBuf=await zp.generateAsync({type:'arraybuffer',compression:'DEFLATE'});
+      zip.file(fname+'.docx',docBuf);
     }catch(e){console.warn('DOCX error:',name,e);}
 
     // ── PDF via pdfmake ──
@@ -741,9 +737,7 @@ async function genAllX1ZIP(){
         var def=buildX1PDFDef(name);
         if(def){
           var pdfBuf=await new Promise(function(resolve,reject){
-            try{
-              pdfMake.createPdf(def).getBuffer(function(buf){resolve(buf);});
-            }catch(e){reject(e);}
+            try{pdfMake.createPdf(def).getBuffer(function(buf){resolve(buf);});}catch(e){reject(e);}
           });
           zip.file(fname+'.pdf',pdfBuf);
         }
@@ -834,26 +828,26 @@ function buildX1Table(name){
 async function genX1DOCX(name){
   if(!lhBuf){try{var r=await fetch('./CC%20Papier%20firmowy%202025%20(3).docx');if(!r.ok)throw new Error();lhBuf=await r.arrayBuffer();}catch(e){alert('Brak szablonu DOCX.');return;}}
   try{
-    var zip=await JSZip.loadAsync(lhBuf);
+    var zip=await JSZip.loadAsync(lhBuf.slice(0));
     var doc=await zip.file('word/document.xml').async('string');
     doc=doc.replace(/w:pgSz[^/]*\//,'w:pgSz w:h="11906" w:w="16838" w:orient="landscape"/');
     var inf=byName[name.toLowerCase()];
     var nameStr=name+(inf&&inf.firma?' ('+inf.firma+')':'');
-    function wa2(n,v){return' w:'+n+'="'+v+'"';}
-    function para2(txt,sz,bold){
-      return'<w:p><w:pPr><w:jc w:val="center"/><w:spacing'+wa2('before','120')+wa2('after','80')+'/></w:pPr>'+
+    function mkPara(txt,sz,bold){
+      return'<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="120" w:after="80"/></w:pPr>'+
         '<w:r><w:rPr>'+(bold?'<w:b/>':'')+
-        '<w:rFonts'+wa2('ascii','Calibri')+wa2('hAnsi','Calibri')+'/>'+
-        '<w:sz'+wa2('val',sz)+'/><w:szCs'+wa2('val',sz)+'/></w:rPr>'+
+        '<w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/>'+
+        '<w:sz w:val="'+sz+'"/><w:szCs w:val="'+sz+'"/></w:rPr>'+
         '<w:t xml:space="preserve">'+xesc(txt)+'</w:t></w:r></w:p>';
     }
-    var content=para2(nameStr,28,true)+para2('Spotkania 1 na 1',24,true)+buildX1Table(name)+'<w:p/>';
+    var content=mkPara(nameStr,28,true)+mkPara('Spotkania 1 na 1',24,true)+buildX1Table(name)+'<w:p/>';
     doc=doc.replace('<w:sectPr>',content+'<w:sectPr>');
     zip.file('word/document.xml',doc);
     var out=await zip.generateAsync({type:'arraybuffer',compression:'DEFLATE'});
     dl(new Blob([out],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}),x1FileName(name)+'.docx');
   }catch(e){console.error(e);alert('Błąd DOCX: '+e.message);}
 }
+
 
 function buildX1PDFDef(name){
   var person=x1map[name];if(!person)return null;
@@ -1013,7 +1007,7 @@ async function genDOCX(type){
   var buf=await ensureLhBuf();
   if(!buf){alert('Brak szablonu DOCX w repozytorium.');return;}
   try{
-    var zip=await JSZip.loadAsync(buf);
+    var zip=await JSZip.loadAsync(buf.slice(0));
     var doc=await zip.file('word/document.xml').async('string');
     doc=doc.replace('<w:sectPr>',buildTable(type)+'<w:p/><w:sectPr>');
     zip.file('word/document.xml',doc);
