@@ -312,10 +312,13 @@ var WLC_LOGO='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABdwAAABlCAYAAABXyCF+
 var BADGE_BG_CC='./CC.PNG';
 var BADGE_BG_BNI='./BNI_.PNG';
 
-// ══ COLUMNS ══
-// ZMIANA: nowe indeksy po dodaniu kolumny "Spotkanie Grupy" na pozycji F (index 5)
-var C={IMIE:1,NAZWISKO:2,SPOTKGRUPY:5,GRUPA:6,FIRMA:7,BRANZA:8,SKALA:9,DYREKTOR:10,EMAIL:11,ROLA:15,
-       POTW:38,OBECNY:39,CC:40,CCP:41,BNI:42,GOSC:43,OBS:44,PARTNER:45};
+// ══ COLUMNS ══ (Lista zaproszeń, 0-based)
+// A=0 Lp | B=1 Imię | C=2 Nazwisko | D=3 Imię i nazwisko | E=4 Czy duplikat
+// F=5 Grupa | G=6 Firma | H=7 Branża | I=8 Skala | J=9 Dyrektor | K=10 E-mail
+// AL=37 Potwierdzony | AM=38 Obecny | AN=39 CC | AO=40 CC+ | AP=41 BNI+
+// AQ=42 Gość | AR=43 Obserwator | AS=44 Czy czł. własnej grupy | AT=45 Czy czł. innych grup | AU=46 Partner
+var C={IMIE:1,NAZWISKO:2,GRUPA:5,FIRMA:6,BRANZA:7,SKALA:8,DYREKTOR:9,EMAIL:10,
+       POTW:37,OBECNY:38,CC:39,CCP:40,BNI:41,GOSC:42,OBS:43,WLASNA:44,INNA:45,PARTNER:46};
 
 // ══ STATE ══
 var P=[],meetings=[],byName={},x1map={},x1list=[],selPerson=null;
@@ -417,22 +420,17 @@ function parseP(rows){
   rows.slice(4).forEach(function(r){
     var im=String(r[C.IMIE]||'').trim(),naz=String(r[C.NAZWISKO]||'').trim();
     if(!im&&!naz)return;
-    // ZMIANA: wlasna i inna wyprowadzane z porównania Spotkanie Grupy (kol.5) vs Grupa (kol.6)
-    // wlasna = SG==Grupa AND (CC lub CC+)  |  inna = SG!=Grupa AND (CC lub CC+)
-    var sg=String(r[C.SPOTKGRUPY]||'').trim();
     var gr=String(r[C.GRUPA]||'').trim();
-    var isMember=isT(r[C.CC])||isT(r[C.CCP]);
     var p={
       imie:im,nazwisko:naz,pelne:(im+' '+naz).trim(),
       grupa:gr,firma:String(r[C.FIRMA]||''),
       branza:String(r[C.BRANZA]||''),skala:String(r[C.SKALA]||''),
       dyrektor:String(r[C.DYREKTOR]||''),email:String(r[C.EMAIL]||''),
-      rola:String(r[C.ROLA]||''),
       potw:isT(r[C.POTW]),obecny:isT(r[C.OBECNY]),
       isCC:isT(r[C.CC]),isCCP:isT(r[C.CCP]),isBNI:isT(r[C.BNI]),isGosc:isT(r[C.GOSC]),
       obs:isT(r[C.OBS]),
-      wlasna:sg===gr&&isMember,
-      inna:sg!==gr&&isMember,
+      wlasna:isT(r[C.WLASNA]),
+      inna:isT(r[C.INNA]),
       partner:isT(r[C.PARTNER])
     };
     P.push(p);byName[p.pelne.toLowerCase()]=p;
@@ -504,7 +502,7 @@ function renderList(){
     var t=ttype(p);
     return'<tr>'+
       '<td class="lp">'+(i+1)+'</td>'+
-      '<td><div class="nm">'+esc(p.imie+' '+p.nazwisko)+'</div>'+(p.rola?'<div class="ns">'+esc(p.rola)+'</div>':'')+'</td>'+
+      '<td><div class="nm">'+esc(p.imie+' '+p.nazwisko)+'</div></td>'+
       '<td>'+esc(p.firma)+'</td>'+
       '<td class="el">'+esc(p.branza)+'</td>'+
       '<td class="el">'+esc(p.skala)+'</td>'+
